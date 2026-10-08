@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Test real-time</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 16px; }
+        input { padding: 6px; margin: 4px 0; width: 100%; box-sizing: border-box; }
+        button { padding: 6px 12px; margin: 4px 0; }
+        #log { background: #f4f4f4; padding: 10px; height: 350px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <h1>TaskFlow - test Socket.io</h1>
+    <p>Pagina di prova: incolla il token ottenuto dal login (es. da Postman), connettiti
+       e guarda arrivare gli eventi in tempo reale mentre usi le API.</p>
+
+    <label>Token JWT</label>
+    <input id="token" placeholder="eyJhbGciOi...">
+    <button id="connectBtn">Connetti</button>
+
+    <label>ID progetto</label>
+    <input id="projectId" placeholder="1">
+    <button id="joinBtn">Entra nel progetto</button>
+
+    <label>Messaggio chat</label>
+    <input id="message" placeholder="Scrivi un messaggio...">
+    <button id="sendBtn">Invia</button>
+
+    <h3>Eventi ricevuti</h3>
+    <div id="log"></div>
+
+    <!-- Il client di Socket.io viene servito automaticamente dal nostro server -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

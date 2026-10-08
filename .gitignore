@@ -1,0 +1,5 @@
+# Dipendenze: si reinstallano con "npm install"
+node_modules/
+
+# Variabili d'ambiente con le credenziali: NON vanno mai su GitHub
+.env
