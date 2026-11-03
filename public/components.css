@@ -1,2 +1,15 @@
 .select-filter select{height:43px;padding:0 31px 0 12px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#77768d;font-size:10px}.task-reassign{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;color:#a09eae;font-size:8px}.task-reassign select{max-width:145px;padding:4px 20px 4px 7px;border:1px solid #ecebf1;border-radius:6px;background:#fff;color:#77768d;font-size:8px}.button-danger-soft{min-height:42px;display:inline-flex;align-items:center;justify-content:center;padding:0 13px;border:0;border-radius:11px;background:#fff0ed;color:#cb7064;font-size:11px;font-weight:700}.button-danger-soft:hover{background:#ffe4df}.admin-section{margin-top:31px}.admin-list{overflow:hidden;border:1px solid #edecf3;border-radius:13px;background:#fff}.admin-row{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid #f0eff4}.admin-row:last-child{border-bottom:0}.admin-user-copy{min-width:0;flex:1}.admin-user-copy strong,.admin-user-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-user-copy strong{font-size:11px}.admin-user-copy small{margin-top:4px;color:#9998a8;font-size:9px}.admin-role{padding:4px 7px;border-radius:5px;background:#f1efff;color:#756bd1;font-size:8px;font-weight:700;text-transform:uppercase}.admin-role.blocked{background:#fff0ed;color:#d67868}.admin-row .button{min-height:31px;padding:0 10px;font-size:9px}.report-copy{min-width:0;flex:1}.report-copy strong{display:block;font-size:11px}.report-copy p{margin:5px 0;color:#8f8e9f;font-size:10px;line-height:1.5}.report-copy small{color:#aaa9b6;font-size:9px}.admin-empty{padding:21px;color:#9998a8;text-align:center;font-size:10px}
 @media(max-width:760px){.is-admin .side-nav{grid-template-columns:repeat(3,1fr)}.admin-row{flex-wrap:wrap}.admin-row .button{margin-left:auto}.select-filter select{max-width:126px;padding:0 19px 0 8px;font-size:9px}}
+
+/* Filtri, pagine e scadenze della bacheca. */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+.pagination span { font-size: 13px; color: #6b6680; }
+.board-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
+.board-filters label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; font-size: 12px; color: #625d75; }
+.board-filters input, .board-filters select, #catalogCategoryFilter { min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid #e5e0ee; border-radius: 10px; background: white; color: #29243d; font: inherit; }
+.task-card.overdue { border: 1px solid #d96b61; }
+.overdue-label { display: inline-block; color: #a52f26; background: #fff0ed; border-radius: 6px; padding: 3px 7px; font-size: 12px; margin-top: 8px; }
+#olderMessages { display: block; margin: 12px auto; }
+#olderMessages.hidden { display: none; }
+#dashboardMore { margin-top: 20px; }
+.button:disabled { opacity: .5; cursor: default; }
