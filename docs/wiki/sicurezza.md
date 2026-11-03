@@ -58,7 +58,6 @@ richiedono un nuovo login. Anche eventuali token di reset precedenti vanno richi
   di inviare una email. E' una simulazione da progetto didattico.
 - La configurazione CORS e Socket.io accetta origini ampie per semplificare il client locale;
   per una distribuzione pubblica va ristretta ai domini autorizzati.
-- `sequelize.sync()` crea/aggiorna la struttura in sviluppo; un'applicazione evoluta dovrebbe
-  gestire migrazioni versionate.
+- Le migrazioni versionate aggiornano lo schema senza ricreare le tabelle esistenti.
 - Le credenziali demo sono pubblicate nella wiki solo per la prova locale; non riutilizzarle
   in produzione.

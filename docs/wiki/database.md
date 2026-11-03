@@ -43,6 +43,23 @@ task e chat.
 
 ## Seed
 
-`src/seed.js` sincronizza le tabelle e crea l'amministratore definito in `.env`.
+`src/seed.js` applica le migrazioni e crea l'amministratore definito in `.env`.
 `src/seedDemo.js` prepara cinque account, cinque progetti, collaborazioni, task e un messaggio
 iniziale per ciascun progetto. I dati demo sono aggiuntivi al database locale.
+
+## Migrazioni versionate
+
+`src/migrations/001-initial-schema.js` contiene uno snapshot dello schema iniziale.
+Su database vuoto crea le tabelle; su installazioni esistenti verifica colonne, tipi e chiavi
+primarie, senza ricreare le tabelle. Uno schema incompatibile interrompe la migrazione con
+un errore esplicito. `002-list-indexes.js` aggiunge indici a chat, catalogo, progetti personali,
+task assegnati e segnalazioni.
+
+Le migrazioni applicate sono registrate in `SequelizeMeta`. Un lock MySQL per database
+serializza gli avvii concorrenti. In MySQL le operazioni DDL non sono transazionali: queste
+migrazioni riconoscono tabelle/indici gia presenti e possono riprendere dopo un'interruzione.
+
+Comandi: `npm.cmd run db:status` (sola lettura), `npm.cmd run db:migrate` (applicazione).
+Anche server e seed eseguono le migrazioni prima di usare le tabelle. Per cambiare lo schema,
+aggiungere una nuova migrazione alla lista in `src/migrations/index.js` e aggiornare i modelli;
+non modificare le versioni gia applicate. Non e previsto un rollback distruttivo automatico.

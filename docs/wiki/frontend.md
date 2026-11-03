@@ -30,3 +30,13 @@ Il browser non espone tutte le funzioni REST: per esempio la modifica completa d
 progetto, la rimozione membri, la scelta intervallo date nel catalogo e il flusso di reset
 password si provano tramite API/Postman. L'immagine copertina e' un URL configurabile via API,
 non un upload file. I dettagli e tutte le rotte sono in [API REST](api.md).
+
+## Liste e filtri
+
+Catalogo e amministrazione hanno pulsanti precedente/successiva. La dashboard permette di
+caricare altri progetti e task mantenendo contatori globali. La chat parte dai messaggi
+recenti e carica lo storico su richiesta, conservando la posizione di lettura.
+
+La bacheca combina ricerca nel titolo/descrizione, assegnatario (anche non assegnati),
+priorita e scadenza (scaduti, oggi, senza data). Un task completato non e marcato come scaduto.
+Le date si confrontano con il giorno locale. L'eliminazione dei task richiede conferma.

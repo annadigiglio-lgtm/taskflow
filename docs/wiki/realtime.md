@@ -48,3 +48,14 @@ dell'utente quando l'admin lo blocca.
 Accedere a TaskFlow da due browser/sessioni con account membri dello stesso progetto. Aprire
 la bacheca in entrambe e creare/spostare un task oppure inviare un messaggio dalla chat: il
 secondo client riceve l'aggiornamento senza ricaricare la pagina.
+
+## Ciclo di vita dei progetti
+
+`projectUpdated` con `{ projectId }` raggiunge le stanze personali dei membri dopo modifica,
+archiviazione, moderazione e cambi di membership, anche se stanno guardando la dashboard.
+La rimozione aggiorna nella stessa transazione membership e assegnatari dei task; il membro
+rimosso riceve l'evento personale e viene escluso dalla stanza del progetto.
+
+`projectDeleted` raggiunge gli ex membri e svuota la stanza. Il client abbandona il dettaglio
+eliminato e aggiorna la dashboard. `catalogChanged` e un segnale senza dati privati per
+ricaricare il catalogo attualmente aperto. I messaggi live vengono uniti allo storico per ID.

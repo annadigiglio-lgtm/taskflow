@@ -75,3 +75,23 @@ Richiede utente autenticato con ruolo `admin`.
 - `403`: account bloccato o permessi insufficienti; `404`: risorsa/rotta assente.
 - `409`: conflitto come email gia' registrata o utente gia' membro; `429`: rate limit.
 - `500`: errore imprevisto, dettagli non esposti al client.
+
+## Paginazione
+
+`GET /projects/public`, `/admin/users`, `/admin/reports` accettano `page` (default 1) e
+`limit` (default 25, massimo 100). Il body resta un array; gli header `X-Page`, `X-Limit`,
+`X-Total-Count`, `X-Has-More` indicano posizione e disponibilita della pagina successiva.
+La ricerca catalogo `q` cerca in titolo, descrizione, categoria e tecnologie prima della
+paginazione. I filtri esistenti continuano a funzionare.
+
+La dashboard usa gli stessi parametri e restituisce gli array esistenti con due nuovi campi:
+`pagination` (`page`, `limit`, `hasMore`) e `totals` (`activeProjects`, `assignedTasks`, `openTasks`).
+Ogni array ha una propria pagina; `hasMore` e vero se almeno uno ha altri risultati.
+
+La chat usa un cursore: `GET /projects/:id/messages?limit=25&before=123` legge i messaggi
+con ID inferiore a 123. Senza `before` restituisce i piu recenti, sempre in ordine cronologico.
+`X-Has-More` e `X-Before` permettono di chiedere il blocco precedente senza saltare/duplicare
+messaggi quando ne arrivano di nuovi. Il cursore non permette di accedere ad altri progetti.
+
+Valori non interi, negativi o oltre i limiti restituiscono 400. La bacheca task completa resta
+un oggetto con tre colonne; i filtri dell'interfaccia si applicano a tutte le sue attivita.

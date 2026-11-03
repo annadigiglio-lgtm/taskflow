@@ -4,7 +4,7 @@
 
 ```text
 src/
-  server.js             connessione DB, sync modelli e avvio HTTP/Socket.io
+  server.js             connessione DB, migrazioni e avvio HTTP/Socket.io
   app.js                middleware Express, file statici e router API
   config/db.js          configurazione Sequelize/MySQL letta da .env
   routes/               associa URL e metodi HTTP a middleware/controller
