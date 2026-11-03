@@ -5,10 +5,11 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import sequelize from "./config/db.js";
 import { User } from "./models/index.js";
+import { runMigrations } from "./migrations/index.js";
 
 async function seed() {
     try {
-        await sequelize.sync();
+        await runMigrations();
 
         const { ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
         if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {

@@ -1,5 +1,6 @@
 import httpError from "../utils/httpError.js";
 import { isValidDateOnly } from "../utils/date.js";
+import { positiveInteger } from "../utils/pagination.js";
 
 const text = (max, min = 0) => value => typeof value === "string" && value.trim().length >= min && value.length <= max;
 const email = value => text(254, 3)(value) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -56,6 +57,9 @@ export function validateApiInput(req, res, next) {
         for (const [name, value] of Object.entries(req.query)) {
             if (typeof value !== "string" || value.length > 255) throw httpError(400, `Parametro '${name}' non valido`);
         }
+        positiveInteger(req.query.page, "page", 1, 1000000);
+        positiveInteger(req.query.limit, "limit", 25, 100);
+        positiveInteger(req.query.before, "before");
         const rule = rules.find(([method, pattern]) => method === req.method && pattern.test(path));
         if (rule) {
             const [, , fields, required] = rule;

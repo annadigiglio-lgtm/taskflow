@@ -18,7 +18,7 @@ const app = express();
 // 1) Sicurezza: helmet imposta header HTTP di sicurezza, cors permette
 //    le chiamate da altri domini (es. un frontend separato)
 app.use(helmet());
-app.use(cors());
+app.use(cors({ exposedHeaders: ["X-Page", "X-Limit", "X-Total-Count", "X-Has-More", "X-Before", "X-Blocked-Count"] }));
 
 // 2) Logging: stampa metodo, URL e data/ora di ogni richiesta
 app.use((req, res, next) => {

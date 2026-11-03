@@ -59,6 +59,7 @@ export function initSocket(httpServer) {
         // Controlliamo che sia davvero un membro prima di farlo entrare nella stanza.
         socket.on("joinProject", async (projectId) => {
             try {
+                if (!Number.isSafeInteger(projectId) || projectId <= 0) return socket.emit("errorMessage", "ID progetto non valido");
                 const membership = await ProjectMember.findOne({
                     where: { projectId, userId: socket.user.id }
                 });
@@ -117,4 +118,19 @@ export function disconnectToken(token) {
     for (const socket of io.sockets.sockets.values()) {
         if (socket.sessionToken === token) socket.disconnect(true);
     }
+}
+
+// Raggiunge anche la dashboard, senza esporre dati privati al catalogo.
+export async function projectChanged(projectId, event = "projectUpdated", extraUserIds = []) {
+    if (!io) return;
+    try {
+        const members = await ProjectMember.findAll({ where: { projectId }, attributes: ["userId"] });
+        const rooms = [...new Set([...extraUserIds, ...members.map(member => member.userId)])].map(id => `user:${id}`);
+        if (rooms.length) io.to(rooms).emit(event, { projectId });
+        io.emit("catalogChanged");
+    } catch (err) { console.error("Aggiornamento live non riuscito:", err.message); }
+}
+
+export function closeProjectRoom(projectId) {
+    if (io) io.in(`project:${projectId}`).socketsLeave(`project:${projectId}`);
 }

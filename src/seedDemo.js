@@ -4,6 +4,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import sequelize from "./config/db.js";
 import { Message, Project, ProjectMember, Task, User } from "./models/index.js";
+import { runMigrations } from "./migrations/index.js";
 
 const DEMO_PASSWORD = "TaskFlow2026!";
 const people = [
@@ -48,7 +49,7 @@ function dateInDays(days) {
 async function seedDemo() {
     try {
         await sequelize.authenticate();
-        await sequelize.sync();
+        await runMigrations();
 
         const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
         const users = [];

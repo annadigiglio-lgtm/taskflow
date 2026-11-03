@@ -1,39 +1,26 @@
-import { Op } from "sequelize";
-import { Project, ProjectMember, Task } from "../models/index.js";
+﻿import { Op } from "sequelize";
+import { Project, User, Task } from "../models/index.js";
+import { pagination } from "../utils/pagination.js";
 
-// GET /api/dashboard -> la dashboard personale dell'utente loggato
 export async function getDashboard(req, res, next) {
     try {
         const userId = req.user.id;
-
-        // 1) Progetti creati da me
-        const ownedProjects = await Project.findAll({
-            where: { ownerId: userId },
-            order: [["createdAt", "DESC"]]
+        const paging = pagination(req.query);
+        const ownedWhere = { ownerId: userId };
+        const memberWhere = { ownerId: { [Op.ne]: userId } };
+        const membership = [{ model: User, as: "members", attributes: [], through: { attributes: [] }, where: { id: userId }, required: true }];
+        const [owned, member, assigned, activeOwned, activeMember, openTasks] = await Promise.all([
+            Project.findAndCountAll({ ...paging, where: ownedWhere, order: [["createdAt", "DESC"], ["id", "DESC"]] }),
+            Project.findAndCountAll({ ...paging, distinct: true, where: memberWhere, include: membership, order: [["createdAt", "DESC"], ["id", "DESC"]] }),
+            Task.findAndCountAll({ ...paging, where: { assigneeId: userId }, include: [{ model: Project, attributes: ["id", "title"] }], order: [["dueDate", "ASC"], ["id", "ASC"]] }),
+            Project.count({ where: { ...ownedWhere, status: "active" } }),
+            Project.count({ distinct: true, where: { ...memberWhere, status: "active" }, include: membership }),
+            Task.count({ where: { assigneeId: userId, status: { [Op.ne]: "done" } } })
+        ]);
+        res.json({
+            ownedProjects: owned.rows, memberProjects: member.rows, assignedTasks: assigned.rows,
+            pagination: { page: paging.page, limit: paging.limit, hasMore: [owned, member, assigned].some(result => paging.page * paging.limit < result.count) },
+            totals: { activeProjects: activeOwned + activeMember, assignedTasks: assigned.count, openTasks }
         });
-
-        // 2) Progetti di altri di cui sono membro
-        //    Prima prendo gli id dei progetti dalla tabella ponte...
-        const memberships = await ProjectMember.findAll({ where: { userId } });
-        const projectIds = memberships.map(m => m.projectId);
-        //    ...poi i progetti, escludendo quelli creati da me (già nella lista sopra)
-        const memberProjects = await Project.findAll({
-            where: {
-                id: projectIds,               // equivale a: id IN (...)
-                ownerId: { [Op.ne]: userId }  // Op.ne = "diverso da"
-            },
-            order: [["createdAt", "DESC"]]
-        });
-
-        // 3) Task assegnati a me, ordinati per scadenza (la più vicina per prima)
-        const assignedTasks = await Task.findAll({
-            where: { assigneeId: userId },
-            include: [{ model: Project, attributes: ["id", "title"] }],
-            order: [["dueDate", "ASC"]]
-        });
-
-        res.json({ ownedProjects, memberProjects, assignedTasks });
-    } catch (err) {
-        next(err);
-    }
+    } catch (err) { next(err); }
 }
