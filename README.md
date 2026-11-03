@@ -44,8 +44,8 @@ npm run seed:demo
 npm start        # oppure: npm run dev (con nodemon)
 ```
 
-Il server parte su `http://localhost:3000`. Le tabelle vengono create automaticamente da
-`sequelize.sync()` a partire dai modelli.
+Il server parte su `http://localhost:3000`. Le tabelle vengono create automaticamente dalle
+migrazioni versionate in `src/migrations/`.
 
 La documentazione dettagliata del progetto e' nella [wiki](docs/wiki/index.md).
 
@@ -60,9 +60,11 @@ npm.cmd run test:integration
 ```
 
 Il primo comando esegue i test di regressione senza collegarsi al database. Il secondo
-verifica le API HTTP e Socket.io con MySQL reale: usa le credenziali del `.env` per creare
+verifica API HTTP, Socket.io e interfaccia con MySQL reale: usa le credenziali del `.env` per creare
 un database casuale `taskflow_test_*`, eliminato alla fine. L'utente MySQL deve poter creare
 ed eliminare database. I dati del database applicativo non vengono modificati.
+
+Il test browser usa Edge/Chrome headless se disponibile (oppure `TEST_BROWSER_PATH`).
 
 I test coprono ruoli, accessi ai progetti privati, isolamento dei task, validazione,
 reset concorrenti e scaduti, logout, blocco utenti e scadenza delle connessioni live.
@@ -75,7 +77,7 @@ collegati alla password corrente, così il reset invalida tutte le sessioni prec
 ```
 taskflow/
 ├── src/
-│   ├── server.js            # Avvio: connessione DB, sync tabelle, server HTTP + Socket.io
+│   ├── server.js            # Avvio: connessione DB, migrazioni, server HTTP + Socket.io
 │   ├── app.js               # Configurazione Express: middleware globali e rotte
 │   ├── seed.js              # Crea l'utente amministratore
 │   ├── config/db.js         # Connessione Sequelize a MySQL
@@ -246,5 +248,24 @@ File: `postman/TaskFlow.postman_collection.json` (in Postman: *Import*).
 - La lista dei token revocati e il conteggio del rate limit sono in memoria: si azzerano al riavvio (in produzione si userebbe Redis).
 - L'email di recupero password è simulata in console: per inviarla davvero si potrebbe usare `nodemailer`.
 - L'immagine di copertina è un URL: per il caricamento di file si potrebbe usare `multer`.
-- Le tabelle sono create con `sequelize.sync()`: in un progetto più grande si userebbero le migrazioni di Sequelize CLI.
+- Le migrazioni sono eseguite in avanti: le modifiche successive allo schema vanno aggiunte come nuovi file versionati.
 - `npm audit` segnala alcune vulnerabilità nelle dipendenze indirette (`braces` tramite nodemon, solo in sviluppo; `uuid` tramite Sequelize). La correzione proposta (`npm audit fix --force`) farebbe tornare Sequelize alla versione 3, quindi non è stata applicata.
+
+## Pagine, bacheca e migrazioni
+
+- Catalogo, utenti e segnalazioni: `?page=1&limit=25` (massimo 100), con pulsanti pagina.
+- Dashboard: pulsante per caricare altri progetti/task e contatori calcolati su tutti i dati.
+- Chat: ultimi 25 messaggi e pulsante per lo storico precedente, senza duplicati dai socket.
+- Bacheca: ricerca, filtri per persona, priorita e scadenza; evidenza dei task scaduti e
+  conferma prima della cancellazione.
+- Modifica, archiviazione, moderazione, rimozione membri ed eliminazione aggiornano i client live.
+
+```powershell
+npm.cmd run db:status
+npm.cmd run db:migrate
+```
+
+Avvio e seed applicano automaticamente le migrazioni mancanti. La prima migrazione riconosce
+le tabelle esistenti compatibili e conserva i dati; la seconda aggiunge indici alle liste.
+Ogni versione applicata viene registrata in `SequelizeMeta`. I dettagli sono nella
+[documentazione del database](docs/wiki/database.md).
