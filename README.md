@@ -37,12 +37,38 @@ cp .env.example .env
 # 4. Crea le tabelle e l'utente amministratore
 npm run seed
 
-# 5. Avvia il server
+# 5. (Facoltativo) Crea cinque account demo, progetti, task e chat
+npm run seed:demo
+
+# Avvia il server
 npm start        # oppure: npm run dev (con nodemon)
 ```
 
 Il server parte su `http://localhost:3000`. Le tabelle vengono create automaticamente da
 `sequelize.sync()` a partire dai modelli.
+
+La documentazione dettagliata del progetto e' nella [wiki](docs/wiki/index.md).
+
+Gli account dimostrativi condividono la password `TaskFlow2026!`; il comando stampa gli
+indirizzi email e i progetti creati. Il seed demo e' riutilizzabile e non duplica i dati.
+
+## Test automatici
+
+```powershell
+npm.cmd test
+npm.cmd run test:integration
+```
+
+Il primo comando esegue i test di regressione senza collegarsi al database. Il secondo
+verifica le API HTTP e Socket.io con MySQL reale: usa le credenziali del `.env` per creare
+un database casuale `taskflow_test_*`, eliminato alla fine. L'utente MySQL deve poter creare
+ed eliminare database. I dati del database applicativo non vengono modificati.
+
+I test coprono ruoli, accessi ai progetti privati, isolamento dei task, validazione,
+reset concorrenti e scaduti, logout, blocco utenti e scadenza delle connessioni live.
+
+Dopo questo aggiornamento occorre effettuare nuovamente il login: i nuovi JWT sono
+collegati alla password corrente, così il reset invalida tutte le sessioni precedenti.
 
 ## Struttura del progetto
 
@@ -59,7 +85,7 @@ taskflow/
 │   ├── routes/              # Collegano gli URL a middleware e controller
 │   ├── socket/index.js      # Socket.io: autenticazione, stanze, invio eventi
 │   └── utils/               # Piccole funzioni riutilizzabili
-├── public/                  # Pagina di prova per gli eventi in tempo reale
+├── public/                  # Interfaccia web TaskFlow (HTML, CSS, JavaScript)
 ├── postman/                 # Collection Postman
 ├── .env.example             # Esempio di configurazione (il vero .env non va su GitHub)
 └── package.json
@@ -188,9 +214,11 @@ dalle API REST, con i loro controlli di sicurezza. Socket.io serve solo a **invi
 aggiornamenti ai client. Così tutte le funzionalità sono disponibili via REST, come richiesto,
 e i permessi sono controllati in un unico punto.
 
-**Pagina di prova:** con il server avviato, apri `http://localhost:3000`, incolla un token,
-premi "Connetti", inserisci l'id di un progetto e premi "Entra nel progetto". Usando le API
-da Postman vedrai arrivare gli eventi nella pagina.
+**Interfaccia web:** con il server avviato, apri `http://localhost:3000` e accedi o crea un
+account. Dalla dashboard puoi creare progetti, aprire una bacheca, gestire i task, invitare
+membri e usare la chat. Gli amministratori hanno anche la schermata per moderare utenti,
+progetti e segnalazioni. La pagina si collega automaticamente a Socket.io per mostrare gli
+aggiornamenti live; le operazioni continuano a passare dalle API REST.
 
 ## Collection Postman
 
