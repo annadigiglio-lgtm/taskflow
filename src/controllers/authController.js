@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import { User } from "../models/index.js";
 import { generateToken, revokedTokens } from "../utils/jwt.js";
 import httpError from "../utils/httpError.js";
+import { disconnectToken, disconnectUser } from "../socket/index.js";
 
 // Controlla che un valore sia una stringa non vuota.
 // Serve anche contro le injection: se qualcuno manda un oggetto
@@ -79,6 +80,7 @@ export async function login(req, res, next) {
 // Aggiungiamo il token alla lista dei token revocati: da ora non sarà più accettato
 export function logout(req, res) {
     revokedTokens.add(req.token);
+    disconnectToken(req.token);
     res.json({ message: "Logout effettuato" });
 }
 
@@ -102,7 +104,7 @@ export async function forgotPassword(req, res, next) {
         if (user) {
             const resetToken = crypto.randomBytes(32).toString("hex"); // stringa casuale
             await user.update({
-                resetToken,
+                resetToken: crypto.createHash("sha256").update(resetToken).digest("hex"),
                 resetTokenExpires: new Date(Date.now() + 60 * 60 * 1000) // tra 1 ora
             });
             console.log(`[EMAIL SIMULATA] Reset password per ${email} - token: ${resetToken}`);
@@ -127,9 +129,10 @@ export async function resetPassword(req, res, next) {
         }
 
         // Cerchiamo l'utente con quel token e con la scadenza non ancora passata
+        const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
         const user = await User.unscoped().findOne({
             where: {
-                resetToken: token,
+                resetToken: resetTokenHash,
                 resetTokenExpires: { [Op.gt]: new Date() } // Op.gt = "maggiore di"
             }
         });
@@ -137,11 +140,16 @@ export async function resetPassword(req, res, next) {
             throw httpError(400, "Token di reset non valido o scaduto");
         }
 
-        await user.update({
+        // Compare-and-set: due richieste concorrenti non possono consumare lo stesso token.
+        const [updated] = await User.update({
             password: await bcrypt.hash(newPassword, 10),
             resetToken: null,
             resetTokenExpires: null
+        }, {
+            where: { id: user.id, resetToken: resetTokenHash, resetTokenExpires: { [Op.gt]: new Date() } }
         });
+        if (updated !== 1) throw httpError(400, "Token di reset non valido o scaduto");
+        disconnectUser(user.id);
         res.json({ message: "Password aggiornata, ora puoi fare il login" });
     } catch (err) {
         next(err);

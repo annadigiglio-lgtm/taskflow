@@ -3,6 +3,10 @@ import { Project, ProjectMember, User, Task, Report } from "../models/index.js";
 import { emitToProject, notifyUser, notifyAdmins, removeUserFromProject } from "../socket/index.js";
 import httpError from "../utils/httpError.js";
 import pick from "../utils/pick.js";
+import sequelize from "../config/db.js";
+import { isValidDateOnly } from "../utils/date.js";
+import { pagination, pageHeaders } from "../utils/pagination.js";
+import { projectChanged, closeProjectRoom } from "../socket/index.js";
 
 // Campi che l'utente può inviare quando crea/modifica un progetto
 const PROJECT_FIELDS = ["title", "description", "category", "technologies", "visibility", "coverImage"];
@@ -15,6 +19,14 @@ const USER_FIELDS = ["id", "name", "email"];
 export async function listPublicProjects(req, res, next) {
     try {
         const { category, technology, from, to } = req.query;
+        for (const [name, value] of Object.entries({ from, to })) {
+            if (value !== undefined && !isValidDateOnly(value)) {
+                throw httpError(400, `Il parametro '${name}' deve essere una data valida AAAA-MM-GG`);
+            }
+        }
+        if (from && to && from > to) {
+            throw httpError(400, "La data 'from' deve precedere o coincidere con 'to'");
+        }
 
         const where = { visibility: "public", status: "active", isHidden: false };
 
@@ -41,11 +53,17 @@ export async function listPublicProjects(req, res, next) {
             }
         }
 
-        const projects = await Project.findAll({
+        if (req.query.q) {
+            where[Op.or] = ["title", "description", "category", "technologies"].map(field => ({ [field]: { [Op.like]: `%${req.query.q}%` } }));
+        }
+        const paging = pagination(req.query);
+        const { rows: projects, count } = await Project.findAndCountAll({
+            ...paging,
             where,
             include: [{ model: User, as: "owner", attributes: USER_FIELDS }],
-            order: [["createdAt", "DESC"]] // dal più recente
+            order: [["createdAt", "DESC"], ["id", "DESC"]]
         });
+        pageHeaders(res, paging, count);
         res.json(projects);
     } catch (err) {
         next(err);
@@ -56,11 +74,14 @@ export async function listPublicProjects(req, res, next) {
 export async function createProject(req, res, next) {
     try {
         const data = pick(req.body, PROJECT_FIELDS);
-        const project = await Project.create({ ...data, ownerId: req.user.id });
+        const project = await sequelize.transaction(async (transaction) => {
+            const created = await Project.create({ ...data, ownerId: req.user.id }, { transaction });
+            // Progetto e primo membro devono essere salvati insieme.
+            await created.addMember(req.user, { transaction });
+            return created;
+        });
 
-        // Il proprietario è anche il primo membro del progetto
-        await project.addMember(req.user);
-
+        await projectChanged(project.id);
         res.status(201).json(project);
     } catch (err) {
         next(err);
@@ -96,6 +117,7 @@ export async function updateProject(req, res, next) {
     try {
         const data = pick(req.body, PROJECT_FIELDS);
         await req.project.update(data);
+        await projectChanged(req.project.id);
         res.json(req.project);
     } catch (err) {
         next(err);
@@ -111,6 +133,7 @@ export async function archiveProject(req, res, next) {
             throw httpError(400, "Il campo 'archived' deve essere true o false");
         }
         await req.project.update({ status: archived ? "archived" : "active" });
+        await projectChanged(req.project.id);
         res.json(req.project);
     } catch (err) {
         next(err);
@@ -121,7 +144,10 @@ export async function archiveProject(req, res, next) {
 export async function deleteProject(req, res, next) {
     try {
         // Grazie a onDelete: "CASCADE" vengono cancellati anche task, messaggi e segnalazioni
+        const members = await ProjectMember.findAll({ where: { projectId: req.project.id }, attributes: ["userId"] });
         await req.project.destroy();
+        await projectChanged(req.project.id, "projectDeleted", members.map(member => member.userId));
+        closeProjectRoom(req.project.id);
         res.status(204).send(); // 204 No Content: tutto ok, nessun contenuto da restituire
     } catch (err) {
         next(err);
@@ -150,6 +176,7 @@ export async function addMember(req, res, next) {
         }
 
         await req.project.addMember(user);
+        await projectChanged(req.project.id);
 
         // Notifiche in tempo reale:
         // - ai membri del progetto (che vedono il nuovo membro)
@@ -183,15 +210,17 @@ export async function removeMember(req, res, next) {
             throw httpError(404, "L'utente non è membro del progetto");
         }
 
-        await membership.destroy();
-        // I task che erano assegnati a lui tornano "non assegnati"
-        await Task.update(
-            { assigneeId: null },
-            { where: { projectId: req.project.id, assigneeId: userId } }
-        );
+        await sequelize.transaction(async transaction => {
+            await membership.destroy({ transaction });
+            await Task.update(
+                { assigneeId: null },
+                { where: { projectId: req.project.id, assigneeId: userId }, transaction }
+            );
+        });
 
         emitToProject(req.project.id, "memberLeft", { projectId: req.project.id, userId });
         removeUserFromProject(userId, req.project.id);
+        await projectChanged(req.project.id, "projectUpdated", [userId]);
         res.status(204).send();
     } catch (err) {
         next(err);

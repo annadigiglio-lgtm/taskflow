@@ -1,5 +1,7 @@
 import { Message, User } from "../models/index.js";
 import { emitToProject } from "../socket/index.js";
+import { Op } from "sequelize";
+import { positiveInteger } from "../utils/pagination.js";
 
 // Chat del progetto.
 // Scelta implementativa: i messaggi si INVIANO con una richiesta REST (POST)
@@ -10,12 +12,18 @@ import { emitToProject } from "../socket/index.js";
 // GET /api/projects/:projectId/messages -> storico della chat
 export async function getMessages(req, res, next) {
     try {
+        const limit = positiveInteger(req.query.limit, "limit", 25, 100);
+        const before = positiveInteger(req.query.before, "before");
         const messages = await Message.findAll({
-            where: { projectId: req.project.id },
+            where: { projectId: req.project.id, ...(before ? { id: { [Op.lt]: before } } : {}) },
+            limit: limit + 1,
             include: [{ model: User, as: "author", attributes: ["id", "name"] }],
-            order: [["createdAt", "ASC"]] // dal più vecchio al più recente
+            order: [["id", "DESC"]]
         });
-        res.json(messages);
+        const hasMore = messages.length > limit;
+        const page = messages.slice(0, limit).reverse();
+        res.set({ "X-Has-More": String(hasMore), "X-Limit": String(limit), "X-Before": hasMore ? String(page[0].id) : "" });
+        res.json(page);
     } catch (err) {
         next(err);
     }

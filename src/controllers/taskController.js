@@ -3,6 +3,7 @@ import { TASK_STATUSES } from "../models/Task.js";
 import { emitToProject, notifyUser } from "../socket/index.js";
 import httpError from "../utils/httpError.js";
 import pick from "../utils/pick.js";
+import { isValidDateOnly } from "../utils/date.js";
 
 // NB: tutte queste rotte passano prima da loadProject + requireMember,
 // quindi qui req.project esiste già e l'utente è sicuramente un membro.
@@ -35,8 +36,7 @@ async function checkAssignee(projectId, assigneeId) {
 // Controlla che la scadenza sia nel formato AAAA-MM-GG (es. "2026-11-08")
 function checkDueDate(dueDate) {
     if (dueDate === null || dueDate === undefined) return; // scadenza facoltativa
-    const validFormat = typeof dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dueDate);
-    if (!validFormat || isNaN(new Date(dueDate))) {
+    if (!isValidDateOnly(dueDate)) {
         throw httpError(400, "dueDate deve essere una data valida nel formato AAAA-MM-GG");
     }
 }
