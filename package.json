@@ -5,9 +5,12 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
+    "test": "node --test",
+    "test:integration": "node --test integration/api.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "seed:demo": "node src/seedDemo.js"
   },
   "author": "Anna Digiglio",
   "license": "ISC",
