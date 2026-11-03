@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
-import { User, ProjectMember } from "../models/index.js";
+import { ProjectMember } from "../models/index.js";
 import { verifyToken } from "../utils/jwt.js";
+import { loadSessionUser } from "../utils/session.js";
 
 // Istanza di Socket.io condivisa con il resto dell'applicazione
 let io;
@@ -20,11 +21,13 @@ export function initSocket(httpServer) {
     io.use(async (socket, next) => {
         try {
             const payload = verifyToken(socket.handshake.auth.token);
-            const user = await User.findByPk(payload.id);
+            const user = await loadSessionUser(payload);
             if (!user || user.isBlocked) {
                 return next(new Error("Non autorizzato"));
             }
             socket.user = user; // salviamo l'utente sul socket
+            socket.sessionToken = socket.handshake.auth.token;
+            socket.tokenExpiresAt = payload.exp * 1000;
             next();
         } catch {
             next(new Error("Token non valido"));
@@ -32,6 +35,16 @@ export function initSocket(httpServer) {
     });
 
     io.on("connection", (socket) => {
+        // La scadenza del JWT vale anche per una connessione già aperta.
+        let expiryTimer;
+        function checkExpiry() {
+            const remaining = socket.tokenExpiresAt - Date.now();
+            if (remaining <= 0) return socket.disconnect(true);
+            expiryTimer = setTimeout(checkExpiry, Math.min(remaining, 2 ** 31 - 1));
+            expiryTimer.unref();
+        }
+        checkExpiry();
+        socket.on("disconnect", () => clearTimeout(expiryTimer));
         console.log(`Socket connesso: ${socket.id} (utente ${socket.user.email})`);
 
         // Ogni utente entra subito nella sua stanza personale
@@ -67,6 +80,7 @@ export function initSocket(httpServer) {
             console.log(`Socket disconnesso: ${socket.id}`);
         });
     });
+    return io;
 }
 
 // --- Funzioni usate dai controller per inviare eventi in tempo reale ---
@@ -90,4 +104,17 @@ export function removeUserFromProject(userId, projectId) {
 // Invia un evento a tutti gli admin collegati
 export function notifyAdmins(event, data) {
     if (io) io.to("admins").emit(event, data);
+}
+
+// Chiude subito le connessioni live di un utente bloccato da un admin.
+export function disconnectUser(userId) {
+    if (io) io.in(`user:${userId}`).disconnectSockets(true);
+}
+
+// Revoca solo la sessione che ha effettuato il logout, anche su più schede.
+export function disconnectToken(token) {
+    if (!io) return;
+    for (const socket of io.sockets.sockets.values()) {
+        if (socket.sessionToken === token) socket.disconnect(true);
+    }
 }
