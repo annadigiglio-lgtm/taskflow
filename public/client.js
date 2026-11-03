@@ -11,7 +11,8 @@ const state = {
     activeView: "dashboard",
     catalog: [],
     adminUsers: [],
-    adminReports: []
+    adminReports: [],
+    catalogPage: 1, userPage: 1, reportPage: 1, dashboardPage: 1, messageBefore: null, messageLoading: false
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -63,6 +64,13 @@ async function api(path, options = {}) {
         if (response.status === 401 && state.token) signOut(false);
         throw new Error(data?.error || `Richiesta non riuscita (${response.status})`);
     }
+    if (Array.isArray(data)) Object.defineProperty(data, "pagination", { value: {
+        page: Number(response.headers.get("X-Page") || 1),
+        total: Number(response.headers.get("X-Total-Count") || data.length),
+        hasMore: response.headers.get("X-Has-More") === "true",
+        before: response.headers.get("X-Before"),
+        blocked: Number(response.headers.get("X-Blocked-Count") || 0)
+    } });
     return data;
 }
 
@@ -141,6 +149,10 @@ function signOut(callApi = true) {
     state.user = null;
     state.project = null;
     state.dashboard = null;
+    state.messages = [];
+    state.messageBefore = null;
+    state.messageLoading = false;
+    state.catalogPage = state.userPage = state.reportPage = 1;
     localStorage.removeItem("taskflowToken");
     showAuth();
 }
@@ -164,18 +176,35 @@ function connectSocket() {
     });
     state.socket.on("joinedProject", () => setLiveStatus(true, "Aggiornamenti live attivi"));
     state.socket.on("errorMessage", (message) => showToast(message, "error"));
-    state.socket.on("taskCreated", refreshCurrentProject);
-    state.socket.on("taskUpdated", refreshCurrentProject);
-    state.socket.on("taskDeleted", refreshCurrentProject);
+    const refreshTasks = async () => {
+        await refreshCurrentProject();
+        await loadDashboard();
+    };
+    state.socket.on("taskCreated", refreshTasks);
+    state.socket.on("taskUpdated", refreshTasks);
+    state.socket.on("taskDeleted", refreshTasks);
     state.socket.on("memberJoined", async (data) => {
         showToast(`${data.user?.name || "Un nuovo membro"} è nel progetto.`);
         await refreshCurrentProject();
     });
     state.socket.on("memberLeft", refreshCurrentProject);
-    state.socket.on("chatMessage", async (message) => {
-        if (state.activeView === "project" && state.project?.id === message.projectId && $("#chatPanel").classList.contains("hidden") === false) {
-            await loadMessages();
+    state.socket.on("projectUpdated", async ({ projectId }) => {
+        await loadDashboard();
+        if (state.project?.id === projectId) await refreshCurrentProject();
+    });
+    state.socket.on("projectDeleted", async ({ projectId }) => {
+        if (state.project?.id === projectId) {
+            state.project = null;
+            state.board = { todo: [], in_progress: [], done: [] };
+            state.messages = [];
+            setView("dashboard");
+            showToast("Il progetto \u00e8 stato eliminato.");
         }
+        await loadDashboard();
+    });
+    state.socket.on("catalogChanged", () => { if (state.activeView === "explore") loadCatalog(); });
+    state.socket.on("chatMessage", (message) => {
+        if (state.project?.id === message.projectId && isProjectMember()) mergeMessages([message]);
     });
     state.socket.on("newReport", (data) => showToast(`Nuova segnalazione: ${data.projectTitle}`));
 }
@@ -190,9 +219,19 @@ function allProjects() {
     return [...(state.dashboard?.ownedProjects || []), ...(state.dashboard?.memberProjects || [])];
 }
 
-async function loadDashboard() {
-    const data = await api("/dashboard");
+async function loadDashboard(append = false) {
+    const page = append ? state.dashboardPage + 1 : 1;
+    const token = state.token;
+    const data = await api(`/dashboard?page=${page}`);
+    if (!state.token || token !== state.token) return;
+    if (append && state.dashboard) {
+        for (const key of ["ownedProjects", "memberProjects", "assignedTasks"]) {
+            data[key] = [...new Map([...state.dashboard[key], ...data[key]].map(item => [item.id, item])).values()];
+        }
+    }
+    state.dashboardPage = page;
     state.dashboard = data;
+    $("#dashboardMore").classList.toggle("hidden", !data.pagination.hasMore);
     renderDashboard();
     renderSidebarProjects();
 }
@@ -212,16 +251,16 @@ function renderDashboard() {
     const projects = allProjects();
     const tasks = state.dashboard?.assignedTasks || [];
     const openTasks = tasks.filter((task) => task.status !== "done");
-    $("#statProjects").textContent = projects.filter((project) => project.status !== "archived").length;
-    $("#statTasks").textContent = tasks.length;
-    $("#statDue").textContent = openTasks.length;
+    $("#statProjects").textContent = state.dashboard?.totals?.activeProjects ?? projects.filter((project) => project.status !== "archived").length;
+    $("#statTasks").textContent = state.dashboard?.totals?.assignedTasks ?? tasks.length;
+    $("#statDue").textContent = state.dashboard?.totals?.openTasks ?? openTasks.length;
 
     $("#projectGrid").innerHTML = projects.length
         ? projects.map(projectCard).join("")
         : `<div class="empty-state"><span class="empty-illustration">✳</span><h3>Qui nascerà il tuo prossimo progetto</h3><p>Crea uno spazio di lavoro e invita il tuo team a collaborare.</p><button class="button button-primary" data-action="create-project">＋ Crea il primo progetto</button></div>`;
 
     $("#assignedTasks").innerHTML = tasks.length
-        ? tasks.slice(0, 6).map((task) => `<div class="assigned-row"><span class="assigned-title">${escapeHTML(task.title)}</span><span class="assigned-project">${escapeHTML(task.Project?.title || "Progetto")}</span><span class="priority-label ${escapeHTML(task.priority || "medium")}"><i></i>${escapeHTML(priorityLabel(task.priority))}</span><span class="due-label">${escapeHTML(formatDate(task.dueDate))}</span></div>`).join("")
+        ? tasks.map((task) => `<div class="assigned-row"><span class="assigned-title">${escapeHTML(task.title)}</span><span class="assigned-project">${escapeHTML(task.Project?.title || "Progetto")}</span><span class="priority-label ${escapeHTML(task.priority || "medium")}"><i></i>${escapeHTML(priorityLabel(task.priority))}</span><span class="due-label">${escapeHTML(formatDate(task.dueDate))}</span></div>`).join("")
         : `<div class="no-assigned">Non hai task assegnati per ora. Le attività assegnate a te compariranno qui.</div>`;
 }
 
@@ -246,8 +285,8 @@ async function loadAdmin() {
     if (state.user?.role !== "admin") return;
     try {
         const [users, reports] = await Promise.all([
-            api("/admin/users"),
-            api("/admin/reports?status=open")
+            api(`/admin/users?page=${state.userPage}`),
+            api(`/admin/reports?status=open&page=${state.reportPage}`)
         ]);
         state.adminUsers = users;
         state.adminReports = reports;
@@ -258,9 +297,11 @@ async function loadAdmin() {
 function renderAdmin() {
     const users = state.adminUsers;
     const reports = state.adminReports;
-    $("#adminUserCount").textContent = users.length;
-    $("#adminReportCount").textContent = reports.length;
-    $("#adminBlockedCount").textContent = users.filter((user) => user.isBlocked).length;
+    renderPager("user", users.pagination);
+    renderPager("report", reports.pagination);
+    $("#adminUserCount").textContent = users.pagination.total;
+    $("#adminReportCount").textContent = reports.pagination.total;
+    $("#adminBlockedCount").textContent = users.pagination.blocked;
     $("#adminUsersList").innerHTML = users.length ? users.map((user) => `<div class="admin-row"><span class="avatar">${escapeHTML(initials(user.name))}</span><span class="admin-user-copy"><strong>${escapeHTML(user.name)}</strong><small>${escapeHTML(user.email)}</small></span><span class="admin-role ${user.isBlocked ? "blocked" : ""}">${user.isBlocked ? "Bloccato" : escapeHTML(user.role)}</span>${user.role === "admin" ? "" : `<button class="button ${user.isBlocked ? "button-soft" : "button-primary"}" data-admin-action="block-user" data-user-id="${Number(user.id)}" data-blocked="${!user.isBlocked}">${user.isBlocked ? "Sblocca" : "Blocca"}</button>`}</div>`).join("") : `<div class="admin-empty">Non ci sono utenti da mostrare.</div>`;
     $("#adminReportsList").innerHTML = reports.length ? reports.map((report) => `<div class="admin-row"><span class="stat-icon icon-peach">⚑</span><span class="report-copy"><strong>${escapeHTML(report.Project?.title || "Progetto rimosso")}</strong><p>${escapeHTML(report.reason)}</p><small>Segnalato da ${escapeHTML(report.reporter?.name || "Utente")} · ${escapeHTML(formatDate(report.createdAt, { day: "numeric", month: "short", year: "numeric" }))}</small></span>${report.Project?.id ? `<button class="button button-soft" data-admin-action="hide-project" data-project-id="${Number(report.Project.id)}" data-hidden="${!report.Project.isHidden}">${report.Project.isHidden ? "Mostra" : "Nascondi"}</button>` : ""}<button class="button button-primary" data-admin-action="resolve-report" data-report-id="${Number(report.id)}">Risolvi</button></div>`).join("") : `<div class="admin-empty">Nessuna segnalazione aperta. La community è in buone mani.</div>`;
 }
@@ -285,25 +326,26 @@ async function handleAdminAction(event) {
     finally { button.disabled = false; }
 }
 
+let catalogRequest = 0;
 async function loadCatalog() {
+    const request = ++catalogRequest;
     try {
-        state.catalog = await api("/projects/public");
-        const categories = [...new Set(state.catalog.map((project) => project.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
-        $("#catalogCategoryFilter").innerHTML = `<option value="">Tutte le categorie</option>${categories.map((category) => `<option value="${escapeHTML(category)}">${escapeHTML(category)}</option>`).join("")}`;
-        renderCatalog($("#catalogSearch").value);
+        const query = new URLSearchParams({ page: state.catalogPage, q: $("#catalogSearch").value.trim() });
+        const category = $("#catalogCategoryFilter").value.trim();
+        if (category) query.set("category", category);
+        const projects = await api(`/projects/public?${query}`);
+        if (request !== catalogRequest) return;
+        state.catalog = projects;
+        renderPager("catalog", projects.pagination);
+        $("#catalogGrid").innerHTML = projects.length ? projects.map(projectCard).join("")
+            : `<div class="empty-state"><h3>Nessun progetto trovato</h3><p>Prova un'altra ricerca.</p></div>`;
     } catch (error) { showToast(error.message, "error"); }
 }
 
-function renderCatalog(filter = "") {
-    const query = filter.trim().toLowerCase();
-    const category = $("#catalogCategoryFilter").value;
-    const projects = state.catalog.filter((project) => {
-        const tech = Array.isArray(project.technologies) ? project.technologies.join(" ") : "";
-        return (!category || project.category === category) && `${project.title} ${project.description || ""} ${project.category || ""} ${tech}`.toLowerCase().includes(query);
-    });
-    $("#catalogGrid").innerHTML = projects.length
-        ? projects.map(projectCard).join("")
-        : `<div class="empty-state"><span class="empty-illustration">⌕</span><h3>Nessun progetto trovato</h3><p>Prova a cercare un’altra categoria o tecnologia.</p></div>`;
+function renderPager(name, pagination) {
+    $(`#${name}Page`).textContent = `Pagina ${pagination.page} / ${pagination.total} risultati`;
+    $(`#${name}Prev`).disabled = pagination.page <= 1;
+    $(`#${name}Next`).disabled = !pagination.hasMore;
 }
 
 function isProjectMember() {
@@ -317,7 +359,12 @@ function isProjectOwner() {
 async function openProject(projectId) {
     try {
         const project = await api(`/projects/${Number(projectId)}`);
+        if (state.project && state.project.id !== project.id) state.socket?.emit("leaveProject", state.project.id);
         state.project = project;
+        for (const id of ["boardSearch", "boardAssignee", "boardPriority", "boardDue"]) $("#" + id).value = "";
+        state.messageBefore = null;
+        state.messageLoading = false;
+        $("#olderMessages").classList.add("hidden");
         state.board = { todo: [], in_progress: [], done: [] };
         state.messages = [];
         setView("project");
@@ -336,8 +383,10 @@ function renderProjectHeader() {
     const project = state.project;
     $("#breadcrumbCurrent").textContent = project.title;
     $("#projectTitle").textContent = project.title;
+    $("#messageForm").classList.toggle("hidden", !isProjectMember());
+    $(".board-filters").classList.toggle("hidden", !isProjectMember());
     $("#projectDescription").textContent = project.description || "Nessuna descrizione aggiunta.";
-    $("#projectCategory").textContent = project.category || "PROGETTO";
+    $("#projectCategory").textContent = `${project.category || "PROGETTO"}${project.status === "archived" ? " / Archiviato" : ""}`;
     $("#projectMemberCount").textContent = `◎ ${project.members?.length || 1} membri`;
     const technologies = Array.isArray(project.technologies) ? project.technologies : [];
     $("#projectTech").textContent = technologies.length ? `⌘ ${technologies.join(" · ")}` : "";
@@ -345,6 +394,10 @@ function renderProjectHeader() {
     $("#archiveButton").classList.toggle("hidden", !isProjectOwner());
     $("#deleteProjectButton").classList.toggle("hidden", !isProjectOwner());
     $("#archiveButton").textContent = project.status === "archived" ? "Riattiva progetto" : "Archivia";
+    const filter = $("#boardAssignee");
+    const selected = filter.value;
+    filter.innerHTML = `<option value="">Tutte le persone</option><option value="none">Non assegnati</option>${(project.members || []).map(member => `<option value="${member.id}">${escapeHTML(member.name)}</option>`).join("")}`;
+    filter.value = selected;
     const select = $("#assigneeSelect");
     select.innerHTML = `<option value="">Non assegnato</option>${(project.members || []).map((member) => `<option value="${Number(member.id)}">${escapeHTML(member.name)}</option>`).join("")}`;
 }
@@ -352,7 +405,10 @@ function renderProjectHeader() {
 async function loadBoard() {
     if (!state.project || !isProjectMember()) return;
     try {
-        state.board = await api(`/projects/${state.project.id}/tasks`);
+        const projectId = state.project.id;
+        const board = await api(`/projects/${projectId}/tasks`);
+        if (state.project?.id !== projectId) return;
+        state.board = board;
         renderBoard();
     } catch (error) { showToast(error.message, "error"); }
 }
@@ -366,30 +422,71 @@ function renderBoard() {
     $("#boardCount").textContent = allTasks.length;
     $("#createTaskButton").classList.toggle("hidden", !isProjectMember());
     $("#boardColumns").innerHTML = columnInfo.map((column) => {
-        const tasks = state.board[column.key] || [];
+        const tasks = (state.board[column.key] || []).filter(matchesBoardFilters);
         return `<section class="board-column" aria-label="${column.label}"><div class="column-head"><span class="column-title"><i class="column-dot ${column.dot}"></i>${column.label}</span><span class="column-count">${tasks.length}</span></div>
             ${tasks.length ? `<div class="task-stack">${tasks.map(renderTaskCard).join("")}</div>` : `<div class="column-empty">Nessun task qui per ora.</div>`}</section>`;
     }).join("");
 }
 
+function localToday() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+function isOverdue(task) { return task.status !== "done" && task.dueDate && task.dueDate < localToday(); }
+function matchesBoardFilters(task) {
+    const query = $("#boardSearch").value.trim().toLowerCase();
+    const assignee = $("#boardAssignee").value;
+    const priority = $("#boardPriority").value;
+    const due = $("#boardDue").value;
+    return `${task.title} ${task.description || ""}`.toLowerCase().includes(query)
+        && (!assignee || (assignee === "none" ? !task.assigneeId : task.assigneeId === Number(assignee)))
+        && (!priority || task.priority === priority)
+        && (!due || (due === "overdue" && isOverdue(task)) || (due === "today" && task.dueDate === localToday()) || (due === "none" && !task.dueDate));
+}
 function renderTaskCard(task) {
     const assignee = task.assignee;
     const canEdit = isProjectMember();
     const statusOptions = columnInfo.map((column) => `<option value="${column.key}" ${task.status === column.key ? "selected" : ""}>${column.label}</option>`).join("");
     const memberOptions = (state.project.members || []).map((member) => `<option value="${Number(member.id)}" ${task.assigneeId === member.id ? "selected" : ""}>${escapeHTML(member.name)}</option>`).join("");
-    return `<article class="task-card" data-task-id="${Number(task.id)}"><h3>${escapeHTML(task.title)}</h3>${task.description ? `<p>${escapeHTML(task.description)}</p>` : ""}
+    return `<article class="task-card ${isOverdue(task) ? "overdue" : ""}" data-task-id="${Number(task.id)}"><h3>${escapeHTML(task.title)}</h3>${task.description ? `<p>${escapeHTML(task.description)}</p>` : ""}
         <div class="task-card-foot"><span class="task-assignee">${assignee ? `<i class="tiny-avatar">${escapeHTML(initials(assignee.name))}</i>${escapeHTML(assignee.name.split(/\s+/)[0])}` : "Non assegnato"}</span>
         <span class="task-card-actions"><span class="priority-chip ${escapeHTML(task.priority || "medium")}">${escapeHTML(priorityLabel(task.priority))}</span>${canEdit ? `<select class="task-select" data-action="task-status" aria-label="Sposta task">${statusOptions}</select><button class="delete-task" data-action="delete-task" title="Elimina task" aria-label="Elimina task">×</button>` : ""}</span></div>
+        ${isOverdue(task) ? `<span class="overdue-label">Scaduto</span>` : ""}
         ${canEdit ? `<label class="task-reassign">Assegnataria<select data-action="task-assignee" aria-label="Riassegna task"><option value="">Nessuno</option>${memberOptions}</select></label>` : ""}
         ${task.dueDate ? `<div class="task-due">◷ ${escapeHTML(formatDate(task.dueDate, { day: "numeric", month: "long", year: "numeric" }))}</div>` : ""}</article>`;
 }
 
-async function loadMessages() {
-    if (!state.project || !isProjectMember()) return;
+async function loadMessages(older = false) {
+    if (!state.project || !isProjectMember() || state.messageLoading) return;
+    const projectId = state.project.id;
+    const before = older ? state.messageBefore : null;
+    if (older && !before) return;
+    state.messageLoading = true;
+    $("#olderMessages").disabled = true;
     try {
-        state.messages = await api(`/projects/${state.project.id}/messages`);
-        renderMessages();
+        const messages = await api(`/projects/${projectId}/messages${before ? `?before=${before}` : ""}`);
+        if (state.project?.id !== projectId) return;
+        const list = $("#messageList");
+        const height = list.scrollHeight, top = list.scrollTop;
+        state.messageBefore = messages.pagination.before;
+        mergeMessages(messages, !older);
+        $("#olderMessages").classList.toggle("hidden", !messages.pagination.hasMore);
+        if (older) list.scrollTop = top + list.scrollHeight - height;
     } catch (error) { showToast(error.message, "error"); }
+    finally {
+        if (state.project?.id === projectId) {
+            state.messageLoading = false;
+            $("#olderMessages").disabled = false;
+        }
+    }
+}
+function mergeMessages(messages, scroll = false) {
+    const list = $("#messageList");
+    const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    state.messages = [...new Map([...state.messages, ...messages].map(message => [message.id, message])).values()].sort((a, b) => a.id - b.id);
+    const top = list.scrollTop;
+    renderMessages();
+    list.scrollTop = scroll || atBottom ? list.scrollHeight : top;
 }
 
 function renderMessages() {
@@ -409,15 +506,35 @@ async function refreshCurrentProject() {
     if (state.activeView !== "project" || !state.project) return;
     const projectId = state.project.id;
     try {
-        state.project = await api(`/projects/${projectId}`);
+        const project = await api(`/projects/${projectId}`);
+        if (state.project?.id !== projectId) return;
+        state.project = project;
         renderProjectHeader();
-        await Promise.all([loadBoard(), loadDashboard()]);
-    } catch (error) { showToast(error.message, "error"); }
+        if (isProjectMember()) await loadBoard();
+        else {
+            state.board = { todo: [], in_progress: [], done: [] };
+            state.messages = [];
+            state.messageBefore = null;
+            state.socket?.emit("leaveProject", projectId);
+            renderBoard();
+            renderMessages();
+            $("#olderMessages").classList.add("hidden");
+        }
+    } catch (error) {
+        if (state.project?.id === projectId) {
+            state.project = null;
+            state.board = { todo: [], in_progress: [], done: [] };
+            state.messages = [];
+            setView("dashboard");
+        }
+        showToast(error.message, "error");
+    }
 }
 
 async function createProject(event) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const body = {
         title: String(form.get("title")).trim(),
         description: String(form.get("description")).trim(),
@@ -428,7 +545,7 @@ async function createProject(event) {
     try {
         const project = await api("/projects", { method: "POST", body: JSON.stringify(body) });
         $("#projectDialog").close();
-        event.currentTarget.reset();
+        formElement.reset();
         await loadDashboard();
         showToast("Progetto creato. È ora di mettersi al lavoro!");
         await openProject(project.id);
@@ -438,7 +555,8 @@ async function createProject(event) {
 async function createTask(event) {
     event.preventDefault();
     if (!state.project) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const assignee = String(form.get("assigneeId"));
     const body = {
         title: String(form.get("title")).trim(),
@@ -450,7 +568,7 @@ async function createTask(event) {
     try {
         await api(`/projects/${state.project.id}/tasks`, { method: "POST", body: JSON.stringify(body) });
         $("#taskDialog").close();
-        event.currentTarget.reset();
+        formElement.reset();
         await loadBoard();
         showToast("Task aggiunto alla bacheca.");
     } catch (error) { showToast(error.message, "error"); }
@@ -461,15 +579,20 @@ async function sendMessage(event) {
     const content = $("#messageInput").value.trim();
     if (!content || !state.project) return;
     try {
-        await api(`/projects/${state.project.id}/messages`, { method: "POST", body: JSON.stringify({ content }) });
-        $("#messageInput").value = "";
-        await loadMessages();
+        const projectId = state.project.id;
+        const message = await api(`/projects/${projectId}/messages`, { method: "POST", body: JSON.stringify({ content }) });
+        if (state.project?.id === projectId) {
+            $("#messageInput").value = "";
+            mergeMessages([message], true);
+        }
     } catch (error) { showToast(error.message, "error"); }
 }
 
 async function handleProjectAction(event) {
     const target = event.target.closest("[data-action]");
     if (!target || !state.project) return;
+    if (["task-status", "task-assignee"].includes(target.dataset.action) && event.type !== "change") return;
+    if (target.dataset.action === "delete-task" && event.type !== "click") return;
     const taskCard = target.closest("[data-task-id]");
     const taskId = Number(taskCard?.dataset.taskId);
     try {
@@ -481,6 +604,7 @@ async function handleProjectAction(event) {
             await api(`/projects/${state.project.id}/tasks/${taskId}/assign`, { method: "PATCH", body: JSON.stringify({ assigneeId }) });
             await loadBoard();
         } else if (target.dataset.action === "delete-task") {
+            if (!window.confirm("Eliminare questo task? L'operazione \u00e8 definitiva.")) return;
             await api(`/projects/${state.project.id}/tasks/${taskId}`, { method: "DELETE" });
             await loadBoard();
             showToast("Task eliminato.");
@@ -549,8 +673,24 @@ function bindEvents() {
     $("#archiveButton").addEventListener("click", toggleArchive);
     $("#deleteProjectButton").addEventListener("click", deleteProject);
     $("#backToDashboard").addEventListener("click", () => { setView("dashboard"); loadDashboard().catch((e) => showToast(e.message, "error")); });
-    $("#catalogSearch").addEventListener("input", (event) => renderCatalog(event.target.value));
-    $("#catalogCategoryFilter").addEventListener("change", () => renderCatalog($("#catalogSearch").value));
+    let catalogTimer;
+    for (const id of ["catalogSearch", "catalogCategoryFilter"]) $("#" + id).addEventListener("input", () => {
+        clearTimeout(catalogTimer);
+        catalogTimer = setTimeout(() => { state.catalogPage = 1; loadCatalog(); }, 300);
+    });
+    for (const id of ["boardSearch", "boardAssignee", "boardPriority", "boardDue"]) $("#" + id).addEventListener("input", renderBoard);
+    $("#olderMessages").addEventListener("click", () => loadMessages(true));
+    $("#dashboardMore").addEventListener("click", async event => {
+        event.target.disabled = true;
+        try { await loadDashboard(true); } catch (error) { showToast(error.message, "error"); }
+        finally { event.target.disabled = false; }
+    });
+    for (const name of ["catalog", "user", "report"]) for (const [direction, step] of [["Prev", -1], ["Next", 1]]) {
+        $(`#${name}${direction}`).addEventListener("click", () => {
+            state[`${name}Page`] = Math.max(1, state[`${name}Page`] + step);
+            if (name === "catalog") loadCatalog(); else loadAdmin();
+        });
+    }
     $("#notificationButton").addEventListener("click", () => { $("#notificationDot").classList.add("hidden"); showToast("Sei aggiornata: nessuna notifica da leggere."); });
 
     $$(".nav-item").forEach((button) => button.addEventListener("click", () => {
@@ -559,7 +699,7 @@ function bindEvents() {
         if (button.dataset.view === "explore") loadCatalog();
         if (button.dataset.view === "admin") loadAdmin();
     }));
-    $("#refreshAdmin").addEventListener("click", loadAdmin);
+    $("#refreshAdmin").addEventListener("click", () => { state.userPage = 1; state.reportPage = 1; loadAdmin(); });
     $("#adminView").addEventListener("click", handleAdminAction);
     $$('[data-go-view="explore"]').forEach((button) => button.addEventListener("click", () => {
         setView("explore");

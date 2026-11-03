@@ -16,11 +16,13 @@ test("API HTTP con MySQL isolato", async t => {
         process.env.JWT_SECRET = randomBytes(32).toString("hex");
         const { default: sequelize } = await import("../src/config/db.js");
         db = sequelize;
-        const { User } = await import("../src/models/index.js");
+        const { User, Message, Project, Report } = await import("../src/models/index.js");
         const { default: app } = await import("../src/app.js");
         const { initSocket } = await import("../src/socket/index.js");
         const { generateToken } = await import("../src/utils/jwt.js");
-        await db.sync();
+        const { runMigrations } = await import("../src/migrations/index.js");
+        await runMigrations();
+        await runMigrations();
         server = http.createServer(app);
         io = initSocket(server);
         server.listen(0, "127.0.0.1");
@@ -55,7 +57,7 @@ test("API HTTP con MySQL isolato", async t => {
                 method, headers: { ...(body !== undefined ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 ...(body !== undefined ? { body: JSON.stringify(body) } : {})
             });
-            return { status: response.status, body: response.status === 204 ? null : await response.json() };
+            return { status: response.status, headers: response.headers, body: response.status === 204 ? null : await response.json() };
         }
         const accounts = {};
         for (const name of ["owner", "member", "outsider", "admin"]) {
@@ -70,6 +72,18 @@ test("API HTTP con MySQL isolato", async t => {
         }
         const owner = accounts.owner.token, member = accounts.member.token, outsider = accounts.outsider.token;
         let projectId, taskId;
+        function socketEvent(socket, eventName) {
+            return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => { socket.removeEventListener("message", receive); reject(new Error(`Missing socket event: ${eventName}`)); }, 5000);
+                function receive(event) {
+                    const packet = String(event.data);
+                    if (!packet.startsWith("42")) return;
+                    const [name, data] = JSON.parse(packet.slice(2));
+                    if (name === eventName) { clearTimeout(timer); socket.removeEventListener("message", receive); resolve(data); }
+                }
+                socket.addEventListener("message", receive);
+            });
+        }
         await t.test("permessi: login, ruolo admin e campi sensibili", async () => {
             assert.equal((await api("/dashboard")).status, 401);
             assert.equal((await api("/admin/users", { token: outsider })).status, 403);
@@ -111,6 +125,89 @@ test("API HTTP con MySQL isolato", async t => {
             assert.equal((await api(`/projects/${projectId}/tasks`, { token: member })).status, 403);
             const board = await api(`/projects/${projectId}/tasks`, { token: owner });
             assert.equal(board.body.done[0].assigneeId, null);
+        });
+        await t.test("paginazione: catalogo, dashboard, utenti e report", async () => {
+            await Project.bulkCreate(Array.from({ length: 6 }, (_, i) => ({ title: `Public ${i}`, visibility: "public", ownerId: accounts.owner.user.id })));
+            const first = await api("/projects/public?limit=2");
+            const second = await api("/projects/public?limit=2&page=2");
+            assert.equal(first.body.length, 2);
+            assert.equal(first.headers.get("X-Total-Count"), "6");
+            assert.equal(first.headers.get("X-Has-More"), "true");
+            assert.equal(second.body.some(item => first.body.some(other => other.id === item.id)), false);
+            assert.equal((await api("/projects/public?q=Public%205")).body.length, 1);
+            const dashboard = await api("/dashboard?limit=2", { token: owner });
+            assert.equal(dashboard.status, 200);
+            assert.equal(dashboard.body.ownedProjects.length, 2);
+            assert.equal(dashboard.body.totals.activeProjects, 8);
+            assert.equal(dashboard.body.pagination.hasMore, true);
+            assert.equal((await api("/dashboard?limit=2", { token: member })).status, 200);
+            const users = await api("/admin/users?limit=2&page=2", { token: accounts.admin.token });
+            assert.equal(users.body.length, 2);
+            assert.equal(users.headers.get("X-Total-Count"), "4");
+            await Report.bulkCreate(Array.from({ length: 3 }, () => ({ projectId, userId: accounts.outsider.user.id, reason: "Test" })));
+            const reports = await api("/admin/reports?limit=2", { token: accounts.admin.token });
+            assert.equal(reports.body.length, 2);
+            assert.equal(reports.headers.get("X-Total-Count"), "3");
+            for (const query of ["limit=0", "limit=101", "page=-1", "page=1.5", "before=nope"]) assert.equal((await api(`/projects/public?${query}`)).status, 400);
+        });
+        await t.test("chat: cursor stabile mentre arrivano nuovi messaggi", async () => {
+            await Message.bulkCreate(Array.from({ length: 6 }, (_, i) => ({ projectId, userId: accounts.owner.user.id, content: `History ${i}` })));
+            const recent = await api(`/projects/${projectId}/messages?limit=3`, { token: owner });
+            assert.equal(recent.body.length, 3);
+            assert.equal(recent.headers.get("X-Has-More"), "true");
+            assert.deepEqual(recent.body.map(message => message.content), ["History 3", "History 4", "History 5"]);
+            await api(`/projects/${projectId}/messages`, { method: "POST", token: owner, body: { content: "New live message" } });
+            const older = await api(`/projects/${projectId}/messages?limit=3&before=${recent.headers.get("X-Before")}`, { token: owner });
+            assert.deepEqual(older.body.map(message => message.content), ["History 0", "History 1", "History 2"]);
+            assert.equal(older.body.some(message => recent.body.some(other => other.id === message.id)), false);
+            const last = await api(`/projects/${projectId}/messages?limit=3&before=${older.headers.get("X-Before")}`, { token: owner });
+            assert.equal(last.body.length, 1);
+            assert.equal(last.headers.get("X-Has-More"), "false");
+        });
+        await t.test("live: modifica, archiviazione, rimozione membri ed eliminazione", async () => {
+            await api(`/projects/${projectId}/members`, { method: "POST", token: owner, body: { email: "member@example.com" } });
+            const socket = await connectSocket(member);
+            try {
+                const joined = socketEvent(socket, "joinedProject");
+                socket.send(`42${JSON.stringify(["joinProject", projectId])}`);
+                await joined;
+                let updated = socketEvent(socket, "projectUpdated");
+                assert.equal((await api(`/projects/${projectId}`, { method: "PUT", token: owner, body: { title: "Updated live" } })).status, 200);
+                assert.equal((await updated).projectId, projectId);
+                updated = socketEvent(socket, "projectUpdated");
+                await api(`/projects/${projectId}/archive`, { method: "PATCH", token: owner, body: { archived: true } });
+                await updated;
+                assert.equal((await api(`/projects/${projectId}`, { token: member })).body.status, "archived");
+                const assigned = await api(`/projects/${projectId}/tasks/${taskId}/assign`, { method: "PATCH", token: owner, body: { assigneeId: accounts.member.user.id } });
+                assert.equal(assigned.status, 200);
+                const left = socketEvent(socket, "memberLeft");
+                updated = socketEvent(socket, "projectUpdated");
+                await api(`/projects/${projectId}/members/${accounts.member.user.id}`, { method: "DELETE", token: owner });
+                await left; await updated;
+                assert.equal((await api(`/projects/${projectId}/tasks`, { token: owner })).body.done[0].assigneeId, null);
+                const room = io.sockets.sockets.values().find(client => client.user.id === accounts.member.user.id);
+                assert.equal(room.rooms.has(`project:${projectId}`), false);
+                await api(`/projects/${projectId}/members`, { method: "POST", token: owner, body: { email: "member@example.com" } });
+                const deleted = socketEvent(socket, "projectDeleted");
+                assert.equal((await api(`/projects/${projectId}`, { method: "DELETE", token: owner })).status, 204);
+                assert.equal((await deleted).projectId, projectId);
+                assert.equal((await api(`/projects/${projectId}`, { token: member })).status, 404);
+                assert.equal(await Message.count({ where: { projectId } }), 0);
+            } finally { socket.close(); }
+        });
+        await t.test("migrazioni: adozione dello schema e conservazione dei dati", async () => {
+            const { up } = await import("../src/migrations/001-initial-schema.js");
+            const before = await User.count();
+            await up(db.getQueryInterface());
+            await Promise.all([runMigrations(), runMigrations()]);
+            assert.equal(await User.count(), before);
+            const [applied] = await db.query("SELECT name FROM SequelizeMeta");
+            assert.equal(applied.length, 2);
+            assert.equal((await db.getQueryInterface().showIndex("Messages")).some(index => index.name === "messages_project_id"), true);
+        });
+        await t.test("browser: creazione, filtri, scadenze, conferme e chat", async browserTest => {
+            const { checkBrowser } = await import("./browser.js");
+            await checkBrowser(base, owner, browserTest);
         });
         await t.test("scadenza JWT: chiude il socket e impedisce nuove richieste", async () => {
             const user = await User.unscoped().findByPk(accounts.member.user.id);

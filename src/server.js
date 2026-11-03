@@ -4,6 +4,7 @@ import app from "./app.js";
 import sequelize from "./config/db.js";
 import "./models/index.js"; // carica i modelli e le relazioni prima del sync
 import { initSocket } from "./socket/index.js";
+import { runMigrations } from "./migrations/index.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -34,9 +35,9 @@ async function start() {
         await sequelize.authenticate();
         console.log("Connesso al database MySQL!");
 
-        // 2) Crea le tabelle che non esistono ancora, a partire dai modelli
-        await sequelize.sync();
-        console.log("Tabelle sincronizzate");
+        // 2) Applica le migrazioni mancanti senza ricreare le tabelle esistenti
+        await runMigrations();
+        console.log("Database aggiornato");
 
         // 3) Avvia il server
         server.listen(PORT, () => {
