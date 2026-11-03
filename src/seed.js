@@ -29,6 +29,9 @@ async function seed() {
         }
     } catch (err) {
         console.error("Errore nel seed:", err.message);
+        // Restituiamo un codice diverso da zero: chi lancia `npm run seed`
+        // deve poter capire che la configurazione o il database non erano pronti.
+        process.exitCode = 1;
     } finally {
         await sequelize.close(); // chiudiamo la connessione così lo script termina
     }

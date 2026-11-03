@@ -2,6 +2,8 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import { fileURLToPath } from "node:url";
+import { validateApiInput } from "./middleware/validate.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
@@ -33,9 +35,10 @@ app.use("/api", rateLimit({
 
 // 4) Parsing del body JSON -> disponibile in req.body
 app.use(express.json());
+app.use("/api", validateApiInput);
 
 // 5) File statici: la pagina di prova per Socket.io (public/index.html)
-app.use(express.static("public"));
+app.use(express.static(fileURLToPath(new URL("../public/", import.meta.url))));
 
 // --- Rotte (routing modulare) ---
 app.use("/api/auth", authRoutes);

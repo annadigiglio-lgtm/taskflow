@@ -1,5 +1,8 @@
 import { User, Project, Report } from "../models/index.js";
+import { disconnectUser } from "../socket/index.js";
 import httpError from "../utils/httpError.js";
+import { pagination, pageHeaders } from "../utils/pagination.js";
+import { projectChanged } from "../socket/index.js";
 
 // Tutte queste funzioni sono raggiungibili solo dagli admin
 // (vedi authenticate + requireAdmin in routes/adminRoutes.js)
@@ -7,7 +10,10 @@ import httpError from "../utils/httpError.js";
 // GET /api/admin/users
 export async function listUsers(req, res, next) {
     try {
-        const users = await User.findAll({ order: [["id", "ASC"]] });
+        const paging = pagination(req.query);
+        const { rows: users, count } = await User.findAndCountAll({ ...paging, order: [["id", "ASC"]] });
+        pageHeaders(res, paging, count);
+        res.set("X-Blocked-Count", String(await User.count({ where: { isBlocked: true } })));
         res.json(users);
     } catch (err) {
         next(err);
@@ -32,6 +38,9 @@ export async function blockUser(req, res, next) {
         }
 
         await user.update({ isBlocked: blocked });
+        if (blocked) {
+            disconnectUser(user.id);
+        }
         res.json(user);
     } catch (err) {
         next(err);
@@ -46,14 +55,17 @@ export async function listReports(req, res, next) {
             where.status = req.query.status;
         }
 
-        const reports = await Report.findAll({
+        const paging = pagination(req.query);
+        const { rows: reports, count } = await Report.findAndCountAll({
+            ...paging,
             where,
             include: [
                 { model: Project, attributes: ["id", "title", "isHidden"] },
                 { model: User, as: "reporter", attributes: ["id", "name", "email"] }
             ],
-            order: [["createdAt", "DESC"]]
+            order: [["createdAt", "DESC"], ["id", "DESC"]]
         });
+        pageHeaders(res, paging, count);
         res.json(reports);
     } catch (err) {
         next(err);
@@ -83,6 +95,7 @@ export async function hideProject(req, res, next) {
                 { where: { projectId: project.id, status: "open" } }
             );
         }
+        await projectChanged(project.id);
         res.json(project);
     } catch (err) {
         next(err);
