@@ -17,8 +17,13 @@ const loginLimiter = rateLimit({
 // Rotte pubbliche (non serve essere loggati)
 router.post("/register", register);
 router.post("/login", loginLimiter, login);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+const recoveryLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    message: { error: "Troppi tentativi di recupero password, riprova tra 15 minuti" }
+});
+router.post("/forgot-password", recoveryLimiter, forgotPassword);
+router.post("/reset-password", recoveryLimiter, resetPassword);
 
 // Rotte protette (serve il token)
 router.post("/logout", authenticate, logout);

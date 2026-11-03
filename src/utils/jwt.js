@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
+import { passwordVersion } from "./session.js";
 
 // Token "revocati" con il logout.
 // Un JWT è valido finché non scade, quindi per fare il logout lato server
@@ -10,9 +12,9 @@ export const revokedTokens = new Set();
 // Crea un token JWT con dentro l'id e il ruolo dell'utente
 export function generateToken(user) {
     return jwt.sign(
-        { id: user.id, role: user.role },
+        { id: user.id, role: user.role, ...(user.password ? { passwordVersion: passwordVersion(user.password) } : {}) },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+        { expiresIn: process.env.JWT_EXPIRES_IN || "1d", jwtid: randomUUID() }
     );
 }
 

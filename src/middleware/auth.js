@@ -1,6 +1,6 @@
-import { User } from "../models/index.js";
 import { verifyToken } from "../utils/jwt.js";
 import httpError from "../utils/httpError.js";
+import { loadSessionUser } from "../utils/session.js";
 
 // AUTENTICAZIONE: "chi sei?"
 // Legge il token dall'header  Authorization: Bearer <token>
@@ -22,9 +22,9 @@ export async function authenticate(req, res, next) {
 
         // Rileggiamo l'utente dal database: così se un admin lo blocca,
         // il blocco vale subito, anche se il token non è ancora scaduto
-        const user = await User.findByPk(payload.id);
+        const user = await loadSessionUser(payload);
         if (!user) {
-            throw httpError(401, "Utente non trovato");
+            throw httpError(401, "Sessione non valida: effettua di nuovo il login");
         }
         if (user.isBlocked) {
             throw httpError(403, "Il tuo account è stato bloccato da un amministratore");
