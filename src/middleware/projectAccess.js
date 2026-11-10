@@ -41,3 +41,11 @@ export function requireOwner(req, res, next) {
     }
     next();
 }
+
+// Un progetto archiviato conserva bacheca e chat, ma non permette nuove modifiche.
+export function requireActiveForWrites(req, res, next) {
+    if (req.method !== "GET" && req.project.status === "archived") {
+        return next(httpError(403, "Il progetto è archiviato: riattivalo per modificare task o inviare messaggi"));
+    }
+    next();
+}

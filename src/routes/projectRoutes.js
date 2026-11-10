@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../middleware/auth.js";
-import { loadProject, requireMember, requireOwner } from "../middleware/projectAccess.js";
+import { loadProject, requireMember, requireOwner, requireActiveForWrites } from "../middleware/projectAccess.js";
 import {
     listPublicProjects, createProject, getProject, updateProject, archiveProject,
     deleteProject, addMember, removeMember, reportProject
@@ -33,7 +33,7 @@ router.delete("/:projectId/members/:userId", loadProject, requireOwner, removeMe
 router.post("/:projectId/reports", loadProject, reportProject);
 
 // Task e chat: solo per i membri del progetto
-router.use("/:projectId/tasks", loadProject, requireMember, taskRoutes);
-router.use("/:projectId/messages", loadProject, requireMember, messageRoutes);
+router.use("/:projectId/tasks", loadProject, requireMember, requireActiveForWrites, taskRoutes);
+router.use("/:projectId/messages", loadProject, requireMember, requireActiveForWrites, messageRoutes);
 
 export default router;

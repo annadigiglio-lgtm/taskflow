@@ -41,14 +41,13 @@ export async function listPublicProjects(req, res, next) {
         if (from || to) {
             where.createdAt = {};
             if (from) {
-                const fromDate = new Date(from);
+                const fromDate = new Date(`${from}T00:00:00`);
                 if (isNaN(fromDate)) throw httpError(400, "Il parametro 'from' non è una data valida");
                 where.createdAt[Op.gte] = fromDate; // >= from
             }
             if (to) {
-                const toDate = new Date(to);
+                const toDate = new Date(`${to}T23:59:59.999`);
                 if (isNaN(toDate)) throw httpError(400, "Il parametro 'to' non è una data valida");
-                toDate.setHours(23, 59, 59, 999); // includiamo tutto il giorno "to"
                 where.createdAt[Op.lte] = toDate; // <= to
             }
         }

@@ -178,6 +178,19 @@ test("API HTTP con MySQL isolato", async t => {
                 await api(`/projects/${projectId}/archive`, { method: "PATCH", token: owner, body: { archived: true } });
                 await updated;
                 assert.equal((await api(`/projects/${projectId}`, { token: member })).body.status, "archived");
+                assert.equal((await api(`/projects/${projectId}/tasks`, { token: member })).status, 200);
+                assert.equal((await api(`/projects/${projectId}/messages`, { token: member })).status, 200);
+                for (const action of [
+                    { path: "tasks", method: "POST", body: { title: "Non consentito" } },
+                    { path: `tasks/${taskId}`, method: "PUT", body: { title: "Non consentito" } },
+                    { path: `tasks/${taskId}/status`, method: "PATCH", body: { status: "todo" } },
+                    { path: `tasks/${taskId}/assign`, method: "PATCH", body: { assigneeId: null } },
+                    { path: `tasks/${taskId}`, method: "DELETE" },
+                    { path: "messages", method: "POST", body: { content: "Non consentito" } }
+                ]) {
+                    assert.equal((await api(`/projects/${projectId}/${action.path}`, { ...action, token: owner })).status, 403);
+                }
+                await api(`/projects/${projectId}/archive`, { method: "PATCH", token: owner, body: { archived: false } });
                 const assigned = await api(`/projects/${projectId}/tasks/${taskId}/assign`, { method: "PATCH", token: owner, body: { assigneeId: accounts.member.user.id } });
                 assert.equal(assigned.status, 200);
                 const left = socketEvent(socket, "memberLeft");

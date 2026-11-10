@@ -18,6 +18,9 @@ async function seed() {
 
         const existing = await User.findOne({ where: { email: ADMIN_EMAIL } });
         if (existing) {
+            if (existing.role !== "admin") {
+                throw new Error("ADMIN_EMAIL appartiene a un utente base: scegli un'email diversa per l'amministratore");
+            }
             console.log(`L'admin ${ADMIN_EMAIL} esiste già`);
         } else {
             await User.create({

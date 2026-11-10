@@ -37,7 +37,7 @@ app.use("/api", rateLimit({
 app.use(express.json());
 app.use("/api", validateApiInput);
 
-// 5) File statici: la pagina di prova per Socket.io (public/index.html)
+// 5) File statici dell'interfaccia web (HTML, CSS, JavaScript e immagini)
 app.use(express.static(fileURLToPath(new URL("../public/", import.meta.url))));
 
 // --- Rotte (routing modulare) ---

@@ -2,7 +2,7 @@ import "dotenv/config"; // carica le variabili dal file .env
 import http from "http";
 import app from "./app.js";
 import sequelize from "./config/db.js";
-import "./models/index.js"; // carica i modelli e le relazioni prima del sync
+import "./models/index.js"; // carica i modelli e le relazioni prima delle migrazioni
 import { initSocket } from "./socket/index.js";
 import { runMigrations } from "./migrations/index.js";
 

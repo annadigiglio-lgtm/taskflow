@@ -188,7 +188,7 @@ function connectSocket() {
     state.socket.on("taskUpdated", refreshTasks);
     state.socket.on("taskDeleted", refreshTasks);
     state.socket.on("memberJoined", async (data) => {
-        showToast(`${data.user?.name || "Un nuovo membro"} è nel progetto.`);
+        addNotification(`${data.user?.name || "Un nuovo membro"} è nel progetto.`);
         await refreshCurrentProject();
     });
     state.socket.on("memberLeft", refreshCurrentProject);
@@ -211,58 +211,6 @@ function connectSocket() {
         if (state.project?.id === message.projectId && isProjectMember()) mergeMessages([message]);
     });
     state.socket.on("newReport", (data) => addNotification(`Nuova segnalazione: ${data.projectTitle}`));
-}
-
-// Storico locale: ogni account ha una chiave diversa in questo browser.
-function loadNotifications() {
-    state.notifications = [];
-    try {
-        const saved = JSON.parse(localStorage.getItem(`taskflowNotifications:${state.user.id}`) || "[]");
-        if (Array.isArray(saved)) {
-            state.notifications = saved.filter(item => item && typeof item.message === "string" &&
-                typeof item.read === "boolean" && typeof item.createdAt === "string" &&
-                !Number.isNaN(new Date(item.createdAt).getTime())).slice(0, 50);
-        }
-    } catch {
-        // Un dato locale non leggibile non deve impedire il login.
-        console.info("Storico notifiche locale non disponibile.");
-    }
-    renderNotifications();
-}
-
-function saveNotifications() {
-    if (!state.user) return;
-    try {
-        localStorage.setItem(`taskflowNotifications:${state.user.id}`, JSON.stringify(state.notifications));
-    } catch {
-        showToast("Il browser non permette di salvare le notifiche: resteranno disponibili fino al ricaricamento.", "error");
-    }
-}
-
-function addNotification(message) {
-    if (!state.user) return;
-    state.notifications.unshift({ message, createdAt: new Date().toISOString(), read: $("#notificationsDialog").open });
-    state.notifications = state.notifications.slice(0, 50);
-    saveNotifications();
-    renderNotifications();
-    showToast(message);
-}
-
-function renderNotifications() {
-    const unread = state.notifications.filter(item => !item.read).length;
-    $("#notificationDot").classList.toggle("hidden", unread === 0);
-    $("#notificationButton").setAttribute("aria-label", `Notifiche: ${unread} da leggere`);
-    $("#notificationsList").innerHTML = state.notifications.length
-        ? state.notifications.map(item => `<li class="notification-row"><p>${escapeHTML(item.message)}</p><small>${escapeHTML(formatDateTime(item.createdAt))}</small></li>`).join("")
-        : '<li class="no-assigned">Non hai ancora notifiche in questo browser.</li>';
-    $("#clearNotifications").disabled = state.notifications.length === 0;
-}
-
-function openNotifications() {
-    state.notifications.forEach(item => { item.read = true; });
-    saveNotifications();
-    renderNotifications();
-    openDialog($("#notificationsDialog"));
 }
 
 function setLiveStatus(connected, text) {
@@ -297,6 +245,7 @@ function projectCard(project, index = 0) {
     const description = project.description || "Uno spazio per le idee e il lavoro del team.";
     const tech = Array.isArray(project.technologies) ? project.technologies : [];
     return `<article class="project-card" data-project-id="${Number(project.id)}" tabindex="0" role="button" aria-label="Apri ${escapeHTML(project.title)}">
+        ${project.coverImage ? `<img class="cover-image card-cover" src="${escapeHTML(project.coverImage)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
         <div class="project-card-top"><span class="project-card-icon p${index % 4}">${escapeHTML(initials(project.title).slice(0, 1))}</span><span class="category-pill">${escapeHTML(category)}</span></div>
         <h3>${escapeHTML(project.title)}</h3><p>${escapeHTML(description)}</p>
         <div class="project-card-foot"><span>${tech.length ? escapeHTML(tech.slice(0, 2).join(" · ")) : (project.status === "archived" ? "Archiviato" : "Spazio condiviso")}</span><span class="card-arrow">↗</span></div>
@@ -428,6 +377,10 @@ function isProjectOwner() {
     return state.project && state.project.ownerId === state.user.id;
 }
 
+function canWriteProject() {
+    return isProjectMember() && state.project.status === "active";
+}
+
 async function openProject(projectId) {
     try {
         const project = await api(`/projects/${Number(projectId)}`);
@@ -455,7 +408,12 @@ function renderProjectHeader() {
     const project = state.project;
     $("#breadcrumbCurrent").textContent = project.title;
     $("#projectTitle").textContent = project.title;
-    $("#messageForm").classList.toggle("hidden", !isProjectMember());
+    $("#messageForm").classList.toggle("hidden", !canWriteProject());
+    $("#archivedNotice").classList.toggle("hidden", project.status !== "archived");
+    const cover = $("#projectCover");
+    cover.classList.toggle("hidden", !project.coverImage);
+    if (project.coverImage) cover.src = project.coverImage;
+    else cover.removeAttribute("src");
     $(".board-filters").classList.toggle("hidden", !isProjectMember());
     $("#projectDescription").textContent = project.description || "Nessuna descrizione aggiunta.";
     $("#projectCategory").textContent = `${project.category || "PROGETTO"}${project.status === "archived" ? " / Archiviato" : ""}`;
@@ -495,7 +453,7 @@ function priorityLabel(priority) {
 function renderBoard() {
     const allTasks = columnInfo.flatMap((column) => state.board[column.key] || []);
     $("#boardCount").textContent = allTasks.length;
-    $("#createTaskButton").classList.toggle("hidden", !isProjectMember());
+    $("#createTaskButton").classList.toggle("hidden", !canWriteProject());
     $("#boardColumns").innerHTML = columnInfo.map((column) => {
         const tasks = (state.board[column.key] || []).filter(matchesBoardFilters);
         return `<section class="board-column" aria-label="${column.label}"><div class="column-head"><span class="column-title"><i class="column-dot ${column.dot}"></i>${column.label}</span><span class="column-count">${tasks.length}</span></div>
@@ -520,7 +478,7 @@ function matchesBoardFilters(task) {
 }
 function renderTaskCard(task) {
     const assignee = task.assignee;
-    const canEdit = isProjectMember();
+    const canEdit = canWriteProject();
     const statusOptions = columnInfo.map((column) => `<option value="${column.key}" ${task.status === column.key ? "selected" : ""}>${column.label}</option>`).join("");
     const memberOptions = (state.project.members || []).map((member) => `<option value="${Number(member.id)}" ${task.assigneeId === member.id ? "selected" : ""}>${escapeHTML(member.name)}</option>`).join("");
     return `<article class="task-card ${isOverdue(task) ? "overdue" : ""}" data-task-id="${Number(task.id)}"><h3>${escapeHTML(task.title)}</h3>${task.description ? `<p>${escapeHTML(task.description)}</p>` : ""}
@@ -615,7 +573,8 @@ async function createProject(event) {
         description: String(form.get("description")).trim(),
         category: String(form.get("category")).trim(),
         technologies: String(form.get("technologies")).split(",").map((item) => item.trim()).filter(Boolean),
-        visibility: String(form.get("visibility"))
+        visibility: String(form.get("visibility")),
+        coverImage: String(form.get("coverImage")).trim() || null
     };
     try {
         const project = await api("/projects", { method: "POST", body: JSON.stringify(body) });
@@ -637,6 +596,7 @@ async function createTask(event) {
         title: String(form.get("title")).trim(),
         description: String(form.get("description")).trim(),
         priority: String(form.get("priority")),
+        status: String(form.get("status")),
         dueDate: String(form.get("dueDate")) || null,
         assigneeId: assignee ? Number(assignee) : null
     };
@@ -733,65 +693,12 @@ function openDialog(dialog) {
     if (dialog && !dialog.open) dialog.showModal();
 }
 
-function openRecovery() {
-    $("#forgotPasswordForm").reset();
-    $("#resetPasswordForm").reset();
-    $("#recoveryMessage").textContent = "";
-    $("#resetPasswordError").textContent = "";
-    $("#forgotPasswordForm").elements.email.value = $("#authEmail").value;
-    openDialog($("#recoveryDialog"));
-}
-
-async function requestPasswordReset(event) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const button = form.querySelector("button[type=submit]");
-    button.disabled = true;
-    $("#recoveryMessage").textContent = "";
-    try {
-        const result = await api("/auth/forgot-password", {
-            method: "POST", body: JSON.stringify({ email: form.elements.email.value.trim() })
-        });
-        $("#recoveryMessage").textContent = `${result.message}. Per la demo, cerca il codice nella console del server.`;
-    } catch (error) { $("#recoveryMessage").textContent = error.message; }
-    finally { button.disabled = false; }
-}
-
-async function resetPassword(event) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const button = form.querySelector("button[type=submit]");
-    const password = form.elements.newPassword.value;
-    $("#resetPasswordError").textContent = "";
-    if (password !== form.elements.confirmPassword.value) {
-        $("#resetPasswordError").textContent = "Le due password non coincidono.";
-        return;
-    }
-    // bcrypt accetta al massimo 72 byte: i caratteri accentati possono occupare più byte.
-    if (new TextEncoder().encode(password).length > 72) {
-        $("#resetPasswordError").textContent = "La password è troppo lunga: usa al massimo 72 byte.";
-        return;
-    }
-    button.disabled = true;
-    try {
-        await api("/auth/reset-password", {
-            method: "POST", body: JSON.stringify({ token: form.elements.token.value.trim(), newPassword: password })
-        });
-        $("#recoveryDialog").close();
-        $("#authPassword").value = "";
-        form.reset();
-        setAuthMode("login");
-        showToast("Password aggiornata. Accedi con la nuova password.");
-    } catch (error) { $("#resetPasswordError").textContent = error.message; }
-    finally { button.disabled = false; }
-}
-
 // Modifica progetto: riempiamo il modulo con i dati già salvati.
 function editProject() {
     if (!isProjectOwner()) return;
     const form = $("#editProjectForm");
     form.dataset.projectId = state.project.id;
-    for (const field of ["title", "description", "category", "visibility"]) {
+    for (const field of ["title", "description", "category", "visibility", "coverImage"]) {
         form.elements[field].value = state.project[field] || "";
     }
     form.elements.technologies.value = (state.project.technologies || []).join(", ");
@@ -808,7 +715,8 @@ async function saveProject(event) {
         description: form.elements.description.value.trim(),
         category: form.elements.category.value.trim(),
         technologies: form.elements.technologies.value.split(",").map(item => item.trim()).filter(Boolean),
-        visibility: form.elements.visibility.value
+        visibility: form.elements.visibility.value,
+        coverImage: form.elements.coverImage.value.trim() || null
     };
     button.disabled = true;
     try {
@@ -899,6 +807,10 @@ async function sendReport(event) {
 }
 
 function bindEvents() {
+    // Se un URL immagine non è raggiungibile, mostriamo comunque la scheda del progetto.
+    document.addEventListener("error", event => {
+        if (event.target.matches?.("img.cover-image")) event.target.classList.add("hidden");
+    }, true);
     $("#forgotPasswordButton").addEventListener("click", openRecovery);
     $("#forgotPasswordForm").addEventListener("submit", requestPasswordReset);
     $("#resetPasswordForm").addEventListener("submit", resetPassword);
