@@ -6,11 +6,15 @@ fetch e Socket.io.
 
 ## Schermate
 
-- **Accesso/registrazione**: login JWT o creazione di un account base.
+- **Accesso/registrazione**: login JWT, creazione di un account base e recupero password.
 - **Panoramica**: riepilogo di progetti e task assegnati, scorciatoie ai progetti.
-- **Esplora progetti**: catalogo pubblico con ricerca testuale e selettore categoria.
-- **Progetto**: bacheca a tre colonne, creazione/spostamento/assegnazione/eliminazione task,
-  invito membri, archivio o cancellazione del progetto, chat.
+- **Esplora progetti**: catalogo con ricerca testuale e filtri per categoria, tecnologia e
+  date di creazione, combinabili e azzerabili.
+- **Progetto**: modifica dei dettagli, bacheca a tre colonne,
+  creazione/modifica/spostamento/assegnazione/eliminazione task, invito e rimozione membri,
+  archivio o cancellazione del progetto, segnalazioni e chat.
+- **Notifiche**: elenco delle ultime 50 notifiche live ricevute, con stato letto e
+  cancellazione dello storico locale.
 - **Amministrazione**: visibile agli account admin, con elenco utenti e report; consente
   blocco/sblocco, nascondere/mostrare progetto e risolvere report.
 
@@ -26,10 +30,15 @@ messaggi di stato usano `textContent` dove non serve markup.
 
 ## Limiti del client rispetto alle API
 
-Il browser non espone tutte le funzioni REST: per esempio la modifica completa dei dati del
-progetto, la rimozione membri, la scelta intervallo date nel catalogo e il flusso di reset
-password si provano tramite API/Postman. L'immagine copertina e' un URL configurabile via API,
-non un upload file. I dettagli e tutte le rotte sono in [API REST](api.md).
+L'immagine copertina e' un URL configurabile via API, non un upload file. Il recupero
+password ha due moduli: richiesta del codice e impostazione della nuova password con
+conferma. L'email resta simulata nella console del server; il modulo lo indica esplicitamente.
+I dettagli e tutte le rotte sono in [API REST](api.md).
+
+Lo storico notifiche usa `localStorage`, con una chiave distinta per ID utente. Non e'
+salvato nel database, non si sincronizza tra dispositivi e non recupera notifiche inviate
+durante la disconnessione. I dati locali non sono cifrati. L'elenco viene svuotato a video
+al logout e riletto per l'account corrente al login.
 
 ## Liste e filtri
 

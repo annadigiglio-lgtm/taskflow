@@ -6,6 +6,7 @@ const state = {
     project: null,
     board: { todo: [], in_progress: [], done: [] },
     messages: [],
+    notifications: [],
     socket: null,
     authMode: "login",
     activeView: "dashboard",
@@ -94,6 +95,7 @@ function showAuth() {
 }
 
 function showApp() {
+    loadNotifications();
     $("#authView").classList.add("hidden");
     $("#appView").classList.remove("hidden");
     $("#userName").textContent = state.user.name;
@@ -142,6 +144,7 @@ async function handleAuth(event) {
 }
 
 function signOut(callApi = true) {
+    $$("dialog[open]").forEach(dialog => dialog.close());
     if (callApi && state.token) api("/auth/logout", { method: "POST" }).catch(() => {});
     if (state.socket) state.socket.disconnect();
     state.socket = null;
@@ -150,6 +153,8 @@ function signOut(callApi = true) {
     state.project = null;
     state.dashboard = null;
     state.messages = [];
+    state.notifications = [];
+    renderNotifications();
     state.messageBefore = null;
     state.messageLoading = false;
     state.catalogPage = state.userPage = state.reportPage = 1;
@@ -171,8 +176,7 @@ function connectSocket() {
         if (error.message) console.info("Socket.io:", error.message);
     });
     state.socket.on("notification", (data) => {
-        $("#notificationDot").classList.remove("hidden");
-        showToast(data.message || "Hai una nuova notifica.");
+        addNotification(data.message || "Hai una nuova notifica.");
     });
     state.socket.on("joinedProject", () => setLiveStatus(true, "Aggiornamenti live attivi"));
     state.socket.on("errorMessage", (message) => showToast(message, "error"));
@@ -206,7 +210,59 @@ function connectSocket() {
     state.socket.on("chatMessage", (message) => {
         if (state.project?.id === message.projectId && isProjectMember()) mergeMessages([message]);
     });
-    state.socket.on("newReport", (data) => showToast(`Nuova segnalazione: ${data.projectTitle}`));
+    state.socket.on("newReport", (data) => addNotification(`Nuova segnalazione: ${data.projectTitle}`));
+}
+
+// Storico locale: ogni account ha una chiave diversa in questo browser.
+function loadNotifications() {
+    state.notifications = [];
+    try {
+        const saved = JSON.parse(localStorage.getItem(`taskflowNotifications:${state.user.id}`) || "[]");
+        if (Array.isArray(saved)) {
+            state.notifications = saved.filter(item => item && typeof item.message === "string" &&
+                typeof item.read === "boolean" && typeof item.createdAt === "string" &&
+                !Number.isNaN(new Date(item.createdAt).getTime())).slice(0, 50);
+        }
+    } catch {
+        // Un dato locale non leggibile non deve impedire il login.
+        console.info("Storico notifiche locale non disponibile.");
+    }
+    renderNotifications();
+}
+
+function saveNotifications() {
+    if (!state.user) return;
+    try {
+        localStorage.setItem(`taskflowNotifications:${state.user.id}`, JSON.stringify(state.notifications));
+    } catch {
+        showToast("Il browser non permette di salvare le notifiche: resteranno disponibili fino al ricaricamento.", "error");
+    }
+}
+
+function addNotification(message) {
+    if (!state.user) return;
+    state.notifications.unshift({ message, createdAt: new Date().toISOString(), read: $("#notificationsDialog").open });
+    state.notifications = state.notifications.slice(0, 50);
+    saveNotifications();
+    renderNotifications();
+    showToast(message);
+}
+
+function renderNotifications() {
+    const unread = state.notifications.filter(item => !item.read).length;
+    $("#notificationDot").classList.toggle("hidden", unread === 0);
+    $("#notificationButton").setAttribute("aria-label", `Notifiche: ${unread} da leggere`);
+    $("#notificationsList").innerHTML = state.notifications.length
+        ? state.notifications.map(item => `<li class="notification-row"><p>${escapeHTML(item.message)}</p><small>${escapeHTML(formatDateTime(item.createdAt))}</small></li>`).join("")
+        : '<li class="no-assigned">Non hai ancora notifiche in questo browser.</li>';
+    $("#clearNotifications").disabled = state.notifications.length === 0;
+}
+
+function openNotifications() {
+    state.notifications.forEach(item => { item.read = true; });
+    saveNotifications();
+    renderNotifications();
+    openDialog($("#notificationsDialog"));
 }
 
 function setLiveStatus(connected, text) {
@@ -329,17 +385,33 @@ async function handleAdminAction(event) {
 let catalogRequest = 0;
 async function loadCatalog() {
     const request = ++catalogRequest;
+    const from = $("#catalogFromFilter").value;
+    const to = $("#catalogToFilter").value;
+    const error = from && to && from > to ? "La data iniziale deve precedere o coincidere con quella finale." : "";
+    $("#catalogError").textContent = error;
+    if (error) {
+        $("#catalogGrid").innerHTML = "";
+        $("#catalogPage").textContent = "Correggi l'intervallo delle date.";
+        $("#catalogPrev").disabled = $("#catalogNext").disabled = true;
+        return;
+    }
     try {
         const query = new URLSearchParams({ page: state.catalogPage, q: $("#catalogSearch").value.trim() });
         const category = $("#catalogCategoryFilter").value.trim();
         if (category) query.set("category", category);
+        const technology = $("#catalogTechnologyFilter").value.trim();
+        if (technology) query.set("technology", technology);
+        if (from) query.set("from", from);
+        if (to) query.set("to", to);
         const projects = await api(`/projects/public?${query}`);
         if (request !== catalogRequest) return;
         state.catalog = projects;
         renderPager("catalog", projects.pagination);
         $("#catalogGrid").innerHTML = projects.length ? projects.map(projectCard).join("")
             : `<div class="empty-state"><h3>Nessun progetto trovato</h3><p>Prova un'altra ricerca.</p></div>`;
-    } catch (error) { showToast(error.message, "error"); }
+    } catch (error) {
+        if (request === catalogRequest) $("#catalogError").textContent = error.message;
+    }
 }
 
 function renderPager(name, pagination) {
@@ -391,6 +463,9 @@ function renderProjectHeader() {
     const technologies = Array.isArray(project.technologies) ? project.technologies : [];
     $("#projectTech").textContent = technologies.length ? `⌘ ${technologies.join(" · ")}` : "";
     $("#inviteButton").classList.toggle("hidden", !isProjectOwner());
+    $("#editProjectButton").classList.toggle("hidden", !isProjectOwner());
+    $("#membersButton").classList.toggle("hidden", !isProjectMember() && state.user.role !== "admin");
+    if ($("#membersDialog").open) renderMembers();
     $("#archiveButton").classList.toggle("hidden", !isProjectOwner());
     $("#deleteProjectButton").classList.toggle("hidden", !isProjectOwner());
     $("#archiveButton").textContent = project.status === "archived" ? "Riattiva progetto" : "Archivia";
@@ -452,7 +527,7 @@ function renderTaskCard(task) {
         <div class="task-card-foot"><span class="task-assignee">${assignee ? `<i class="tiny-avatar">${escapeHTML(initials(assignee.name))}</i>${escapeHTML(assignee.name.split(/\s+/)[0])}` : "Non assegnato"}</span>
         <span class="task-card-actions"><span class="priority-chip ${escapeHTML(task.priority || "medium")}">${escapeHTML(priorityLabel(task.priority))}</span>${canEdit ? `<select class="task-select" data-action="task-status" aria-label="Sposta task">${statusOptions}</select><button class="delete-task" data-action="delete-task" title="Elimina task" aria-label="Elimina task">×</button>` : ""}</span></div>
         ${isOverdue(task) ? `<span class="overdue-label">Scaduto</span>` : ""}
-        ${canEdit ? `<label class="task-reassign">Assegnataria<select data-action="task-assignee" aria-label="Riassegna task"><option value="">Nessuno</option>${memberOptions}</select></label>` : ""}
+        ${canEdit ? `<button class="text-button edit-task" data-action="edit-task">Modifica attività</button><label class="task-reassign">Assegnatario<select data-action="task-assignee" aria-label="Riassegna task"><option value="">Nessuno</option>${memberOptions}</select></label>` : ""}
         ${task.dueDate ? `<div class="task-due">◷ ${escapeHTML(formatDate(task.dueDate, { day: "numeric", month: "long", year: "numeric" }))}</div>` : ""}</article>`;
 }
 
@@ -592,7 +667,7 @@ async function handleProjectAction(event) {
     const target = event.target.closest("[data-action]");
     if (!target || !state.project) return;
     if (["task-status", "task-assignee"].includes(target.dataset.action) && event.type !== "change") return;
-    if (target.dataset.action === "delete-task" && event.type !== "click") return;
+    if (["delete-task", "edit-task"].includes(target.dataset.action) && event.type !== "click") return;
     const taskCard = target.closest("[data-task-id]");
     const taskId = Number(taskCard?.dataset.taskId);
     try {
@@ -603,6 +678,8 @@ async function handleProjectAction(event) {
             const assigneeId = target.value ? Number(target.value) : null;
             await api(`/projects/${state.project.id}/tasks/${taskId}/assign`, { method: "PATCH", body: JSON.stringify({ assigneeId }) });
             await loadBoard();
+        } else if (target.dataset.action === "edit-task") {
+            editTask(taskId);
         } else if (target.dataset.action === "delete-task") {
             if (!window.confirm("Eliminare questo task? L'operazione \u00e8 definitiva.")) return;
             await api(`/projects/${state.project.id}/tasks/${taskId}`, { method: "DELETE" });
@@ -656,7 +733,189 @@ function openDialog(dialog) {
     if (dialog && !dialog.open) dialog.showModal();
 }
 
+function openRecovery() {
+    $("#forgotPasswordForm").reset();
+    $("#resetPasswordForm").reset();
+    $("#recoveryMessage").textContent = "";
+    $("#resetPasswordError").textContent = "";
+    $("#forgotPasswordForm").elements.email.value = $("#authEmail").value;
+    openDialog($("#recoveryDialog"));
+}
+
+async function requestPasswordReset(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    $("#recoveryMessage").textContent = "";
+    try {
+        const result = await api("/auth/forgot-password", {
+            method: "POST", body: JSON.stringify({ email: form.elements.email.value.trim() })
+        });
+        $("#recoveryMessage").textContent = `${result.message}. Per la demo, cerca il codice nella console del server.`;
+    } catch (error) { $("#recoveryMessage").textContent = error.message; }
+    finally { button.disabled = false; }
+}
+
+async function resetPassword(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    const password = form.elements.newPassword.value;
+    $("#resetPasswordError").textContent = "";
+    if (password !== form.elements.confirmPassword.value) {
+        $("#resetPasswordError").textContent = "Le due password non coincidono.";
+        return;
+    }
+    // bcrypt accetta al massimo 72 byte: i caratteri accentati possono occupare più byte.
+    if (new TextEncoder().encode(password).length > 72) {
+        $("#resetPasswordError").textContent = "La password è troppo lunga: usa al massimo 72 byte.";
+        return;
+    }
+    button.disabled = true;
+    try {
+        await api("/auth/reset-password", {
+            method: "POST", body: JSON.stringify({ token: form.elements.token.value.trim(), newPassword: password })
+        });
+        $("#recoveryDialog").close();
+        $("#authPassword").value = "";
+        form.reset();
+        setAuthMode("login");
+        showToast("Password aggiornata. Accedi con la nuova password.");
+    } catch (error) { $("#resetPasswordError").textContent = error.message; }
+    finally { button.disabled = false; }
+}
+
+// Modifica progetto: riempiamo il modulo con i dati già salvati.
+function editProject() {
+    if (!isProjectOwner()) return;
+    const form = $("#editProjectForm");
+    form.dataset.projectId = state.project.id;
+    for (const field of ["title", "description", "category", "visibility"]) {
+        form.elements[field].value = state.project[field] || "";
+    }
+    form.elements.technologies.value = (state.project.technologies || []).join(", ");
+    openDialog($("#editProjectDialog"));
+}
+
+async function saveProject(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    const projectId = Number(form.dataset.projectId);
+    const body = {
+        title: form.elements.title.value.trim(),
+        description: form.elements.description.value.trim(),
+        category: form.elements.category.value.trim(),
+        technologies: form.elements.technologies.value.split(",").map(item => item.trim()).filter(Boolean),
+        visibility: form.elements.visibility.value
+    };
+    button.disabled = true;
+    try {
+        await api(`/projects/${projectId}`, { method: "PUT", body: JSON.stringify(body) });
+        $("#editProjectDialog").close();
+        await refreshCurrentProject();
+        await loadDashboard();
+        showToast("Progetto modificato.");
+    } catch (error) { showToast(error.message, "error"); }
+    finally { button.disabled = false; }
+}
+
+function editTask(taskId) {
+    if (!isProjectMember()) return;
+    const tasks = [...state.board.todo, ...state.board.in_progress, ...state.board.done];
+    const task = tasks.find(item => item.id === taskId);
+    if (!task) return;
+    const form = $("#editTaskForm");
+    // Conserviamo gli ID del record aperto, anche se la vista cambia durante l'attesa.
+    form.dataset.projectId = state.project.id;
+    form.dataset.taskId = task.id;
+    for (const field of ["title", "description", "dueDate", "priority"]) {
+        form.elements[field].value = task[field] || "";
+    }
+    openDialog($("#editTaskDialog"));
+}
+
+async function saveTask(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    const body = {
+        title: form.elements.title.value.trim(),
+        description: form.elements.description.value.trim(),
+        dueDate: form.elements.dueDate.value || null,
+        priority: form.elements.priority.value
+    };
+    button.disabled = true;
+    try {
+        await api(`/projects/${form.dataset.projectId}/tasks/${form.dataset.taskId}`, {
+            method: "PUT", body: JSON.stringify(body)
+        });
+        $("#editTaskDialog").close();
+        await refreshCurrentProject();
+        await loadDashboard();
+        showToast("Attività modificata.");
+    } catch (error) { showToast(error.message, "error"); }
+    finally { button.disabled = false; }
+}
+
+function renderMembers() {
+    $("#membersList").innerHTML = (state.project.members || []).map(member => `
+        <li class="member-row">
+            <span><strong>${escapeHTML(member.name)}</strong><small>${escapeHTML(member.email)}</small></span>
+            ${member.id === state.project.ownerId ? '<span>Proprietario</span>' :
+                (isProjectOwner() ? `<button type="button" class="button button-danger-soft" data-remove-member="${Number(member.id)}">Rimuovi</button>` : "")}
+        </li>`).join("");
+}
+
+async function removeMember(event) {
+    const button = event.target.closest("[data-remove-member]");
+    if (!button || !isProjectOwner()) return;
+    if (!window.confirm("Rimuovere questa persona dal progetto? I suoi task resteranno senza assegnatario.")) return;
+    const projectId = state.project.id;
+    button.disabled = true;
+    try {
+        await api(`/projects/${projectId}/members/${Number(button.dataset.removeMember)}`, { method: "DELETE" });
+        await refreshCurrentProject();
+        showToast("Membro rimosso. Le sue attività sono ora non assegnate.");
+    } catch (error) { showToast(error.message, "error"); }
+    finally { button.disabled = false; }
+}
+
+async function sendReport(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+        await api(`/projects/${form.dataset.projectId}/reports`, {
+            method: "POST", body: JSON.stringify({ reason: form.elements.reason.value.trim() })
+        });
+        $("#reportDialog").close();
+        form.reset();
+        showToast("Segnalazione inviata agli amministratori.");
+    } catch (error) { showToast(error.message, "error"); }
+    finally { button.disabled = false; }
+}
+
 function bindEvents() {
+    $("#forgotPasswordButton").addEventListener("click", openRecovery);
+    $("#forgotPasswordForm").addEventListener("submit", requestPasswordReset);
+    $("#resetPasswordForm").addEventListener("submit", resetPassword);
+    $("#editProjectButton").addEventListener("click", editProject);
+    $("#editProjectForm").addEventListener("submit", saveProject);
+    $("#editTaskForm").addEventListener("submit", saveTask);
+    $("#membersButton").addEventListener("click", () => {
+        renderMembers();
+        openDialog($("#membersDialog"));
+    });
+    $("#membersList").addEventListener("click", removeMember);
+    $("#reportButton").addEventListener("click", () => {
+        $("#reportForm").reset();
+        $("#reportForm").dataset.projectId = state.project.id;
+        openDialog($("#reportDialog"));
+    });
+    $("#reportForm").addEventListener("submit", sendReport);
     $("#authForm").addEventListener("submit", handleAuth);
     $("#authSwitch").addEventListener("click", () => setAuthMode(state.authMode === "login" ? "register" : "login"));
     $("#logoutBtn").addEventListener("click", () => signOut());
@@ -674,9 +933,21 @@ function bindEvents() {
     $("#deleteProjectButton").addEventListener("click", deleteProject);
     $("#backToDashboard").addEventListener("click", () => { setView("dashboard"); loadDashboard().catch((e) => showToast(e.message, "error")); });
     let catalogTimer;
-    for (const id of ["catalogSearch", "catalogCategoryFilter"]) $("#" + id).addEventListener("input", () => {
+    for (const id of ["catalogSearch", "catalogCategoryFilter", "catalogTechnologyFilter", "catalogFromFilter", "catalogToFilter"]) $("#" + id).addEventListener("input", () => {
         clearTimeout(catalogTimer);
         catalogTimer = setTimeout(() => { state.catalogPage = 1; loadCatalog(); }, 300);
+    });
+    $("#catalogFilters").addEventListener("submit", event => {
+        event.preventDefault();
+        clearTimeout(catalogTimer);
+        state.catalogPage = 1;
+        loadCatalog();
+    });
+    $("#catalogFilters").addEventListener("reset", () => {
+        clearTimeout(catalogTimer);
+        $("#catalogSearch").value = "";
+        // L'evento reset precede il ripristino degli input: leggiamoli dopo.
+        setTimeout(() => { state.catalogPage = 1; loadCatalog(); }, 0);
     });
     for (const id of ["boardSearch", "boardAssignee", "boardPriority", "boardDue"]) $("#" + id).addEventListener("input", renderBoard);
     $("#olderMessages").addEventListener("click", () => loadMessages(true));
@@ -691,7 +962,12 @@ function bindEvents() {
             if (name === "catalog") loadCatalog(); else loadAdmin();
         });
     }
-    $("#notificationButton").addEventListener("click", () => { $("#notificationDot").classList.add("hidden"); showToast("Sei aggiornata: nessuna notifica da leggere."); });
+    $("#notificationButton").addEventListener("click", openNotifications);
+    $("#clearNotifications").addEventListener("click", () => {
+        state.notifications = [];
+        saveNotifications();
+        renderNotifications();
+    });
 
     $$(".nav-item").forEach((button) => button.addEventListener("click", () => {
         setView(button.dataset.view);

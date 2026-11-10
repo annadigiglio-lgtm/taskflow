@@ -49,6 +49,15 @@ migrazioni versionate in `src/migrations/`.
 
 La documentazione dettagliata del progetto e' nella [wiki](docs/wiki/index.md).
 
+Per preparare l'esame: [guida di studio discorsiva](GUIDA_STUDIO.md), con esempi di
+lettura del codice, domande per l'orale e un percorso pratico per provare il sito.
+
+L'interfaccia include anche la modifica di progetti e attività, la lista dei membri
+con rimozione da parte del proprietario e il modulo per segnalare un progetto.
+Sono disponibili il recupero password (codice nella console del server), i filtri del
+catalogo per tecnologia e date di creazione e lo storico locale delle ultime 50 notifiche
+ricevute. Lo storico è separato per account in questo browser e non recupera eventi offline.
+
 Gli account dimostrativi condividono la password `TaskFlow2026!`; il comando stampa gli
 indirizzi email e i progetti creati. Il seed demo e' riutilizzabile e non duplica i dati.
 

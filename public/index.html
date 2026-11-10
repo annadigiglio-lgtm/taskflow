@@ -40,6 +40,7 @@
                     <label class="field">Password<input id="authPassword" name="password" type="password" autocomplete="current-password" placeholder="Almeno 8 caratteri" minlength="8" required></label>
                     <button class="button button-primary button-wide auth-submit" type="submit"><span id="authSubmitText">Accedi</span><span aria-hidden="true">→</span></button>
                 </form>
+                <p><button id="forgotPasswordButton" class="text-button" type="button">Password dimenticata?</button></p>
                 <p class="auth-switch"><span id="authSwitchLabel">È la prima volta qui?</span> <button id="authSwitch" class="text-button" type="button">Crea un account</button></p>
                 <p class="auth-hint">Usa l’account di prova che hai creato con Postman oppure registrati qui.</p>
             </div>
@@ -86,13 +87,25 @@
 
                 <section id="exploreView" class="page-view hidden">
                     <div class="welcome-row"><div><span class="eyebrow">ISPIRAZIONE CONDIVISA</span><h1>Progetti aperti</h1><p class="page-intro">Scopri cosa stanno costruendo gli altri team.</p></div></div>
-                    <div class="catalog-toolbar"><label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" placeholder="Cerca per categoria o tecnologia…"></label><label class="select-filter"><input id="catalogCategoryFilter" type="search" aria-label="Filtra per categoria" placeholder="Categoria esatta"></label></div>
+                    <div class="catalog-toolbar"><label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" aria-label="Cerca progetti" placeholder="Cerca un progetto…" maxlength="255"></label></div>
+                    <form id="catalogFilters" class="board-filters">
+                        <label>Categoria<input id="catalogCategoryFilter" type="search" placeholder="Categoria esatta" maxlength="255"></label>
+                        <label>Tecnologia<input id="catalogTechnologyFilter" type="search" placeholder="Es. node" maxlength="255"></label>
+                        <label>Creato dal<input id="catalogFromFilter" type="date"></label>
+                        <label>Creato fino al<input id="catalogToFilter" type="date"></label>
+                        <button class="button button-soft" type="reset">Azzera filtri</button>
+                    </form>
+                    <p id="catalogError" class="form-error" role="alert"></p>
                     <div id="catalogGrid" class="project-grid"></div><nav class="pagination" aria-label="Pagine"><button id="catalogPrev" class="button button-soft" type="button">Precedente</button><span id="catalogPage" aria-live="polite"></span><button id="catalogNext" class="button button-soft" type="button">Successiva</button></nav>
                 </section>
 
                 <section id="projectView" class="page-view hidden">
                     <button id="backToDashboard" class="back-link">← <span>Torna ai progetti</span></button>
-                    <div class="project-hero"><div class="project-hero-copy"><span id="projectCategory" class="category-pill">PROGETTO</span><h1 id="projectTitle">Titolo progetto</h1><p id="projectDescription" class="page-intro"></p><div class="project-meta"><span id="projectMemberCount">◎ 0 membri</span><span id="projectTech"></span></div></div><div class="project-hero-actions"><button id="inviteButton" class="button button-soft">＋ Invita membro</button><button id="archiveButton" class="button button-soft">Archivia</button><button id="deleteProjectButton" class="button button-danger-soft">Elimina</button></div></div>
+                    <div class="project-hero"><div class="project-hero-copy"><span id="projectCategory" class="category-pill">PROGETTO</span><h1 id="projectTitle">Titolo progetto</h1><p id="projectDescription" class="page-intro"></p><div class="project-meta"><span id="projectMemberCount">◎ 0 membri</span><span id="projectTech"></span></div></div><div class="project-hero-actions">
+                        <button id="editProjectButton" class="button button-soft">Modifica progetto</button>
+                        <button id="membersButton" class="button button-soft">Membri</button>
+                        <button id="reportButton" class="button button-soft">Segnala</button>
+                        <button id="inviteButton" class="button button-soft">＋ Invita membro</button><button id="archiveButton" class="button button-soft">Archivia</button><button id="deleteProjectButton" class="button button-danger-soft">Elimina</button></div></div>
                     <div class="project-tabs"><button class="project-tab active" data-project-tab="board">Bacheca <span id="boardCount">0</span></button><button class="project-tab" data-project-tab="chat">Chat <span class="tab-live">● live</span></button><span id="liveStatus" class="live-status"><i></i> Connessione in attesa</span></div>
                     <section id="boardPanel" class="board-panel"><div class="board-toolbar"><div><h2>Il flusso del lavoro</h2><p>Sposta i task man mano che il progetto avanza.</p></div><button id="createTaskButton" class="button button-primary">＋ Nuovo task</button></div><div class="board-filters" role="search" aria-label="Filtra i task">
 <label>Cerca<input id="boardSearch" type="search" placeholder="Titolo o descrizione"></label>
@@ -118,6 +131,99 @@
     <dialog id="taskDialog" class="modal-dialog"><form id="taskForm" class="modal-card"><button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">×</button><span class="eyebrow">UN TASK ALLA VOLTA</span><h2>Aggiungi un task</h2><p class="modal-intro">Rendi chiaro il prossimo passo per il team.</p><label class="field">Titolo<input name="title" required maxlength="150" placeholder="Es. Preparare la presentazione"></label><label class="field">Descrizione<textarea name="description" rows="3" placeholder="Aggiungi qualche dettaglio…"></textarea></label><div class="form-two-col"><label class="field">Scadenza<input name="dueDate" type="date"></label><label class="field">Priorità<select name="priority"><option value="medium">Media</option><option value="high">Alta</option><option value="low">Bassa</option></select></label></div><label class="field">Assegna a<select id="assigneeSelect" name="assigneeId"><option value="">Non assegnato</option></select></label><div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Annulla</button><button class="button button-primary" type="submit">Crea task <span>→</span></button></div></form></dialog>
 
     <dialog id="inviteDialog" class="modal-dialog"><form id="inviteForm" class="modal-card"><button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">×</button><span class="eyebrow">IL TEAM CRESCE</span><h2>Invita una persona</h2><p class="modal-intro">La persona deve avere già un account TaskFlow.</p><label class="field">Email<input name="email" type="email" required placeholder="nome@esempio.it"></label><div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Annulla</button><button class="button button-primary" type="submit">Aggiungi al progetto <span>→</span></button></div></form></dialog>
+
+    <!-- Moduli di modifica: i dati iniziali vengono inseriti da client.js. -->
+    <dialog id="editProjectDialog" class="modal-dialog" aria-labelledby="editProjectTitle">
+        <form id="editProjectForm" class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="editProjectTitle">Modifica progetto</h2>
+            <p class="modal-intro">Aggiorna i dettagli del tuo spazio di lavoro.</p>
+            <label class="field">Titolo<input name="title" required maxlength="255"></label>
+            <label class="field">Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea></label>
+            <label class="field">Categoria<input name="category" maxlength="255"></label>
+            <label class="field">Tecnologie<input name="technologies" maxlength="255" placeholder="node, mysql"></label>
+            <label class="field">Visibilit&agrave;<select name="visibility"><option value="private">Privato &mdash; solo i membri</option><option value="public">Pubblico &mdash; visibile nel catalogo</option></select></label>
+            <div class="modal-actions">
+                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
+                <button class="button button-primary" type="submit">Salva modifiche</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="editTaskDialog" class="modal-dialog" aria-labelledby="editTaskTitle">
+        <form id="editTaskForm" class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="editTaskTitle">Modifica attivit&agrave;</h2>
+            <p class="modal-intro">Stato e assegnatario si cambiano direttamente dalla scheda nella bacheca.</p>
+            <label class="field">Titolo<input name="title" required maxlength="255"></label>
+            <label class="field">Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea></label>
+            <div class="form-two-col">
+                <label class="field">Scadenza<input name="dueDate" type="date"></label>
+                <label class="field">Priorit&agrave;<select name="priority"><option value="low">Bassa</option><option value="medium">Media</option><option value="high">Alta</option></select></label>
+            </div>
+            <div class="modal-actions">
+                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
+                <button class="button button-primary" type="submit">Salva modifiche</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="membersDialog" class="modal-dialog" aria-labelledby="membersTitle">
+        <div class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="membersTitle">Membri del progetto</h2>
+            <p class="modal-intro">Il proprietario pu&ograve; rimuovere gli altri membri. Le loro attivit&agrave; restano nel progetto senza assegnatario.</p>
+            <ul id="membersList" class="members-list"></ul>
+            <div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Chiudi</button></div>
+        </div>
+    </dialog>
+
+    <dialog id="reportDialog" class="modal-dialog" aria-labelledby="reportTitle">
+        <form id="reportForm" class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="reportTitle">Segnala progetto</h2>
+            <p class="modal-intro">Descrivi il problema: la segnalazione verr&agrave; esaminata dagli amministratori.</p>
+            <label class="field">Motivo<textarea name="reason" rows="4" required maxlength="10000"></textarea></label>
+            <div class="modal-actions">
+                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
+                <button class="button button-primary" type="submit">Invia segnalazione</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="recoveryDialog" class="modal-dialog" aria-labelledby="recoveryTitle">
+        <div class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="recoveryTitle">Recupera la password</h2>
+            <p class="modal-intro">In questa versione dimostrativa l'email viene simulata: il codice di recupero viene stampato nella console del server ed &egrave; valido un'ora.</p>
+            <form id="forgotPasswordForm">
+                <label class="field">Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+                <button class="button button-primary" type="submit">Richiedi codice</button>
+            </form>
+            <p id="recoveryMessage" role="status"></p>
+            <form id="resetPasswordForm">
+                <h3>Hai il codice? Scegli una nuova password</h3>
+                <label class="field">Codice di recupero<input name="token" autocomplete="off" spellcheck="false" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}"></label>
+                <label class="field">Nuova password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+                <label class="field">Conferma password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+                <p id="resetPasswordError" class="form-error" role="alert"></p>
+                <button class="button button-primary" type="submit">Salva nuova password</button>
+            </form>
+        </div>
+    </dialog>
+
+    <dialog id="notificationsDialog" class="modal-dialog" aria-labelledby="notificationsTitle">
+        <div class="modal-card">
+            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
+            <h2 id="notificationsTitle">Le tue notifiche</h2>
+            <p class="modal-intro">Le ultime 50 notifiche ricevute mentre sei collegata, conservate in questo browser per il tuo account. Le notifiche precedenti al collegamento non vengono recuperate.</p>
+            <ul id="notificationsList" class="notifications-list"></ul>
+            <div class="modal-actions">
+                <button id="clearNotifications" class="button button-soft" type="button">Svuota elenco</button>
+                <button class="button button-primary" type="button" data-close-dialog>Chiudi</button>
+            </div>
+        </div>
+    </dialog>
 
     <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <script src="/socket.io/socket.io.js"></script>

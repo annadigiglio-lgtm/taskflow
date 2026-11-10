@@ -205,9 +205,17 @@ test("API HTTP con MySQL isolato", async t => {
             assert.equal(applied.length, 2);
             assert.equal((await db.getQueryInterface().showIndex("Messages")).some(index => index.name === "messages_project_id"), true);
         });
-        await t.test("browser: creazione, filtri, scadenze, conferme e chat", async browserTest => {
+        await t.test("browser: gestione progetti, catalogo, notifiche e recupero password", async browserTest => {
             const { checkBrowser } = await import("./browser.js");
-            await checkBrowser(base, owner, browserTest);
+            let resetToken;
+            const originalLog = console.log;
+            console.log = (...args) => {
+                const line = args.join(" ");
+                if (line.startsWith("[EMAIL SIMULATA]")) resetToken = line.split("token: ")[1];
+                else originalLog(...args);
+            };
+            try { await checkBrowser(base, owner, browserTest, () => resetToken); }
+            finally { console.log = originalLog; }
         });
         await t.test("scadenza JWT: chiude il socket e impedisce nuove richieste", async () => {
             const user = await User.unscoped().findByPk(accounts.member.user.id);

@@ -13,3 +13,26 @@
 #olderMessages.hidden { display: none; }
 #dashboardMore { margin-top: 20px; }
 .button:disabled { opacity: .5; cursor: default; }
+
+/* I comandi vanno a capo anche sugli schermi piccoli. */
+.project-hero-actions { flex-wrap: wrap; gap: 8px; }
+.members-list { list-style: none; padding: 0; margin: 16px 0; }
+.member-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.member-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.member-row strong, .member-row small { display: block; }
+.member-row small { margin-top: 4px; color: #6b6680; }
+.member-row > span:last-child { font-size: 12px; }
+.member-row button { flex-shrink: 0; }
+.edit-task { display: inline-block; margin-top: 12px; }
+.modal-dialog { max-height: 90vh; overflow-y: auto; }
+.form-error { color: #a52f26; font-size: 13px; }
+.form-error:empty { display: none; }
+#catalogFilters { align-items: flex-end; }
+#catalogFilters label { flex-basis: 160px; }
+#recoveryMessage { font-size: 13px; line-height: 1.6; }
+#resetPasswordForm { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+#resetPasswordForm h3 { margin: 0 0 16px; font-size: 16px; }
+.notifications-list { list-style: none; margin: 16px 0; padding: 0; }
+.notification-row { padding: 12px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.notification-row p { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+.notification-row small { color: #6b6680; }

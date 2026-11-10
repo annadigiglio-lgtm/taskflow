@@ -50,6 +50,8 @@ connessioni live gia' aperte vengono chiuse.
 
 Dal frontend si possono registrare e accedere, consultare dashboard e catalogo, creare
 progetti, gestire bacheca e chat, invitare membri, archiviare o eliminare i propri progetti,
-e usare le schermate admin. Alcune operazioni sono implementate solo via API, per esempio
-modifica completa dei dati del progetto, rimozione di un membro, gestione password dimenticata
-e alcuni filtri di catalogo. L'elenco puntuale e' in [API REST](api.md).
+e usare le schermate admin. Sono disponibili anche modifica dei dati di progetti e task,
+rimozione membri, segnalazioni, recupero password e filtri per tecnologia e date del catalogo.
+Le notifiche ricevute sono conservate localmente per account, fino a 50, in questo browser;
+non vengono recuperate quelle inviate mentre si era scollegati. La copertina rimane
+configurabile via API. L'elenco puntuale delle rotte e' in [API REST](api.md).
