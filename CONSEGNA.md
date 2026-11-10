@@ -123,6 +123,11 @@ copiare il codice dalla console in `resetToken`, poi inviare il reset e rifare i
 
 ## Limiti dichiarati
 
+- La validazione usa funzioni e `switch`, la dashboard esegue query in sequenza e
+  le sessioni vengono verificate tramite `tokenVersion`.
+  Avviare un solo server e attendere la fine di seed/migrazioni prima degli altri comandi.
+  Al primo avvio si applica la migrazione 003 senza cancellare dati; rifare il login.
+
 - L'invio email è simulato; non sono necessarie credenziali SMTP per la demo.
 - Le copertine sono URL, senza upload di file. Le immagini esterne richiedono connettività.
 - Le notifiche conservano gli ultimi 50 eventi ricevuti nel browser corrente, per account;

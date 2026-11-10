@@ -5,8 +5,18 @@ try {
     await sequelize.authenticate();
     if (process.argv.includes("--status")) {
         const tables = await sequelize.getQueryInterface().showAllTables();
-        const [rows] = tables.includes("SequelizeMeta") ? await sequelize.query("SELECT name FROM SequelizeMeta") : [[]];
-        for (const migration of migrations) console.log(`${rows.some(row => row.name === migration.name) ? "applicata" : "da applicare"} ${migration.name}`);
+        let rows = [];
+        if (tables.includes("SequelizeMeta")) {
+            const result = await sequelize.query("SELECT name FROM SequelizeMeta");
+            rows = result[0];
+        }
+        const appliedNames = [];
+        for (const row of rows) appliedNames.push(row.name);
+        for (const migration of migrations) {
+            let status = "da applicare";
+            if (appliedNames.includes(migration.name)) status = "applicata";
+            console.log(`${status} ${migration.name}`);
+        }
     } else {
         await runMigrations();
         console.log("Database aggiornato");

@@ -140,9 +140,11 @@ export async function resetPassword(req, res, next) {
             throw httpError(400, "Token di reset non valido o scaduto");
         }
 
-        // Compare-and-set: due richieste concorrenti non possono consumare lo stesso token.
+        // Il WHERE ricontrolla il codice: solo la prima richiesta può consumarlo.
+        // Aumentando tokenVersion invalidiamo tutti i JWT precedenti al reset.
         const [updated] = await User.update({
             password: await bcrypt.hash(newPassword, 10),
+            tokenVersion: user.tokenVersion + 1,
             resetToken: null,
             resetTokenExpires: null
         }, {

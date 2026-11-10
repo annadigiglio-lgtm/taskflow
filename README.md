@@ -79,8 +79,8 @@ Il test browser usa Edge/Chrome headless se disponibile (oppure `TEST_BROWSER_PA
 I test coprono ruoli, accessi ai progetti privati, isolamento dei task, validazione,
 reset concorrenti e scaduti, logout, blocco utenti e scadenza delle connessioni live.
 
-Dopo questo aggiornamento occorre effettuare nuovamente il login: i nuovi JWT sono
-collegati alla password corrente, così il reset invalida tutte le sessioni precedenti.
+Dopo questo aggiornamento occorre effettuare nuovamente il login: i nuovi JWT contengono
+`tokenVersion`. Il reset password aumenta questo contatore e invalida i token precedenti.
 
 ## Struttura del progetto
 
@@ -285,3 +285,8 @@ Avvio e seed applicano automaticamente le migrazioni mancanti. La prima migrazio
 le tabelle esistenti compatibili e conserva i dati; la seconda aggiunge indici alle liste.
 Ogni versione applicata viene registrata in `SequelizeMeta`. I dettagli sono nella
 [documentazione del database](docs/wiki/database.md).
+
+La terza migrazione aggiunge `Users.tokenVersion` senza cancellare dati. Il server
+esegue le migrazioni in ordine: avviare una sola istanza e non eseguire seed o
+comandi di migrazione contemporaneamente. La validazione usa funzioni normali e `switch`;
+la dashboard esegue query separate, commentate in ordine.

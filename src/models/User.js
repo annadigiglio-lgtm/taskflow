@@ -37,6 +37,12 @@ const User = sequelize.define("User", {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    // Il reset aumenta il numero: i token con la versione vecchia non sono più validi.
+    tokenVersion: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
     // Campi per il recupero password
     resetToken: {
         type: DataTypes.STRING,

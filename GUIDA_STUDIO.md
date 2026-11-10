@@ -211,8 +211,9 @@ Authorization: Bearer <token>
 
 Il server verifica firma, scadenza e revoca del token e rilegge l'utente. Il JWT
 è firmato, non cifrato: non bisogna inserirci password o segreti.
-Nel progetto un controllo collegato all'hash corrente della password rende
-invalidi anche i token precedenti dopo un reset della password.
+Nel progetto il JWT contiene anche `tokenVersion`, un numero che parte da 0.
+Il server lo confronta con il numero salvato sull'utente. Il reset della password
+aumenta il numero nel database: i token vecchi vengono quindi rifiutati.
 
 | Figura | Permessi principali |
 |---|---|
@@ -285,22 +286,19 @@ descrivi il comportamento effettivo del codice quando lo spieghi.
 - I token revocati sono conservati in memoria e si perdono al riavvio del server.
 - Le notifiche live non sono uno storico persistente nel database.
 
-Sono limiti da conoscere e dichiarare, non motivi per aggiungere infrastrutture
-complesse prima dell'esame.
+Questi limiti definiscono il comportamento e l'ambito di utilizzo dell'applicazione.
 
-## 12. Miglioramenti dell'interfaccia
+## 12. Funzionamento dell'interfaccia
 
-Nell'analisi iniziale alcune API non avevano ancora moduli o pulsanti nel sito.
-Le prime operazioni da completare sono modifica di progetti e attività, lista e
-rimozione membri, invio segnalazioni. Queste operazioni riutilizzano il backend
-esistente, senza aggiungere framework.
+L'interfaccia comprende modifica di progetti e attività, lista e rimozione dei
+membri e invio delle segnalazioni. Le operazioni usano le API REST del backend.
 
-Per studiare le modifiche, cerca in `client.js` le funzioni di apertura dei
+In `client.js` si trovano le funzioni di apertura dei
 moduli e quelle di salvataggio. Un modulo di modifica parte dai valori esistenti,
 li mostra negli input e invia i nuovi valori tramite PUT. I permessi rimangono
 controllati dal backend.
 
-Le quattro operazioni essenziali sono ora presenti nell'interfaccia. In particolare:
+Le principali funzioni sono:
 
 | Funzione in `client.js` | Che cosa fa |
 |---|---|
@@ -313,7 +311,7 @@ Le quattro operazioni essenziali sono ora presenti nell'interfaccia. In particol
 | `sendReport` | Invia il motivo della segnalazione tramite POST |
 
 Gli ID del progetto e del task vengono conservati nei `data-*` del modulo.
-`form.dataset.projectId`, per esempio, legge l'ID del progetto che abbiamo aperto
+`form.dataset.projectId`, per esempio, legge l'ID del progetto aperto
 per la modifica. Questi valori sono stringhe nel DOM. Non sono un controllo di
 sicurezza: il backend deve comunque verificare utente e permessi.
 
@@ -331,8 +329,8 @@ Per provare il percorso completo:
 6. Usa **Segnala**, scrivi un motivo e invia. Accedi poi come amministratore per
    leggere e gestire la segnalazione.
 
-Anche recupero password, storico locale delle notifiche e filtri aggiuntivi del
-catalogo sono ora disponibili. Le sezioni seguenti spiegano come funzionano.
+Le sezioni seguenti descrivono recupero password, storico locale delle notifiche
+e filtri del catalogo.
 
 ### Recuperare la password dal sito
 
@@ -361,7 +359,6 @@ correggere. L'invio reale di email rimane una possibile estensione futura.
 
 Le funzioni di questa sezione sono in `public/notifications.js`.
 
-Prima una notifica compariva soltanto come messaggio temporaneo. Ora
 `addNotification` aggiunge il testo e la data a `state.notifications` e conserva
 le ultime 50 notifiche in `localStorage`.
 
@@ -383,8 +380,8 @@ dagli amministratori entrano nell'elenco.
 
 Questo storico non è una tabella MySQL. Rimane dopo un ricaricamento, ma solo in
 questo browser: non si sincronizza con altri dispositivi e non recupera eventi
-inviati mentre l'utente era scollegato. È una scelta semplice per il progetto
-didattico; uno storico completo richiederebbe dati salvati e letti dal server.
+inviati mentre l'utente era scollegato. Uno storico condiviso tra dispositivi
+richiederebbe dati salvati e letti dal server.
 
 ### Filtri del catalogo
 
@@ -414,7 +411,7 @@ Per provare queste funzioni, usa due account: dal secondo assegna un task al
 primo mentre è collegato, poi apri le notifiche e ricarica la pagina. Prova anche
 due date invertite nel catalogo e il recupero password dalla schermata di accesso.
 
-### Copertina e archiviazione nella versione di consegna
+### Copertina e archiviazione
 
 I moduli di creazione e modifica del progetto includono un URL di copertina
 facoltativo. L'URL viene salvato come stringa in MySQL; il browser scarica l'immagine
@@ -427,8 +424,8 @@ i comandi corretti nel browser. `requireActiveForWrites` fa il controllo sul ser
 lascia passare le GET di task e chat, ma rifiuta le scritture su progetti archiviati.
 Il controllo nel browser aiuta l'utente; quello nel backend protegge davvero i dati.
 
-Le funzioni delle notifiche e del recupero sono state separate in due script per
-rendere più facile orientarsi. Tutti gli script condividono lo stesso contesto
+Le funzioni delle notifiche e del recupero si trovano in due script distinti.
+Tutti gli script condividono lo stesso contesto
 della pagina; le funzioni accedono a `state` quando vengono chiamate, dopo che
 `client.js` ha inizializzato lo stato. Non c'è un sistema di compilazione.
 
@@ -483,3 +480,68 @@ temporaneo e comprendono verifiche di API, socket e browser.
 Per ogni funzione chiediti: chi la chiama? Quali dati riceve? Quali controlli fa?
 Che cosa restituisce? Che cosa succede se qualcosa va storto?
 Se sai rispondere seguendo il codice, stai comprendendo il progetto.
+
+## 15. Validazione, migrazioni, sessioni e dashboard
+
+### Validazione: valori in ingresso e risposte true/false
+
+In `middleware/validate.js` le funzioni ricevono i dati da controllare e restituiscono
+un valore booleano che indica se il dato è valido.
+
+```js
+function isText(value, min, max) {
+    if (typeof value !== "string") return false;
+    return value.trim().length >= min && value.length <= max;
+}
+```
+
+Per leggere `isText("Ciao", 1, 255)` chiediti: è una stringa? Il testo senza spazi
+esterni ha almeno un carattere? Non supera 255 caratteri? Se sì restituisce `true`.
+`isValidField` usa uno `switch` per scegliere il controllo del singolo campo.
+`checkBody` verifica i campi obbligatori e quelli presenti con due cicli.
+
+La parte finale legge i pezzi del percorso e il metodo HTTP per scegliere quali
+campi controllare. Per una POST a `/projects` il titolo è obbligatorio; per una
+PUT al progetto si controllano soltanto i campi inviati. I controller continuano
+a ignorare i campi non consentiti: inviare `role: "admin"` non rende amministratori.
+
+### Migrazioni: un elenco e un ciclo
+
+`migrations/index.js` legge da `SequelizeMeta` i nomi dei file già applicati.
+Scorre poi l'elenco delle migrazioni: salta quelle presenti e applica quelle nuove,
+registrandone il nome solo quando l'operazione termina correttamente.
+
+L'applicazione prevede una sola istanza del server. Si aspetta la fine di un seed o di una migrazione
+prima di avviare altri comandi. Le migrazioni restano ripetibili e conservano i dati.
+
+### Sessioni: confrontare due numeri
+
+La colonna `Users.tokenVersion` viene aggiunta dalla terza migrazione; non devi
+cancellare il database. Ecco il percorso completo:
+
+1. L'utente ha versione 0 nel database.
+2. Al login il server firma un JWT che contiene versione 0.
+3. Durante una richiesta `loadSessionUser` legge l'utente e confronta le versioni.
+4. Dopo un reset la password viene aggiornata e la versione passa a 1.
+5. Il vecchio JWT contiene ancora 0: la richiesta viene rifiutata.
+6. Un nuovo login produce un JWT con versione 1, quindi accettato.
+
+Il numero non è una password e non deve essere segreto. Non può essere modificato
+liberamente nel token, perché la firma JWT diventerebbe non valida. Il reset
+mantiene anche il controllo che impedisce di consumare due volte lo stesso codice.
+
+### Dashboard: una query dopo l'altra
+
+`dashboardController.js` divide il lavoro in passaggi numerati:
+
+1. Cerca i progetti con `ownerId` uguale all'utente corrente.
+2. Legge da `ProjectMember` gli ID dei progetti a cui partecipa.
+3. Cerca tra questi quelli che appartengono ad altri proprietari.
+4. Cerca i task assegnati all'utente, includendo il titolo del progetto.
+5. Conta i progetti attivi e le attività non completate.
+6. Controlla se esistono altri risultati e costruisce la risposta JSON.
+
+`Op.in` significa “uno dei valori dell'elenco”; `Op.ne` significa “diverso da”.
+`findAndCountAll` restituisce sia i record della pagina (`rows`) sia il numero
+totale (`count`). Le query vengono eseguite in sequenza con `await`; la risposta
+JSON viene costruita quando tutte le letture sono terminate.

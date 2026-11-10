@@ -19,7 +19,7 @@ test("API HTTP con MySQL isolato", async t => {
         const { User, Message, Project, Report } = await import("../src/models/index.js");
         const { default: app } = await import("../src/app.js");
         const { initSocket } = await import("../src/socket/index.js");
-        const { generateToken } = await import("../src/utils/jwt.js");
+        const { generateToken, verifyToken } = await import("../src/utils/jwt.js");
         const { runMigrations } = await import("../src/migrations/index.js");
         await runMigrations();
         await runMigrations();
@@ -212,10 +212,16 @@ test("API HTTP con MySQL isolato", async t => {
             const { up } = await import("../src/migrations/001-initial-schema.js");
             const before = await User.count();
             await up(db.getQueryInterface());
-            await Promise.all([runMigrations(), runMigrations()]);
+            // Simuliamo un database precedente al contatore, conservando gli utenti.
+            await db.getQueryInterface().removeColumn("Users", "tokenVersion");
+            await db.query("DELETE FROM SequelizeMeta WHERE name = ?", { replacements: ["003-token-version"] });
+            // Le migrazioni si eseguono in ordine e possono essere ripetute.
+            await runMigrations();
+            await runMigrations();
             assert.equal(await User.count(), before);
+            assert.equal((await User.findByPk(accounts.owner.user.id)).tokenVersion, 0);
             const [applied] = await db.query("SELECT name FROM SequelizeMeta");
-            assert.equal(applied.length, 2);
+            assert.equal(applied.length, 3);
             assert.equal((await db.getQueryInterface().showIndex("Messages")).some(index => index.name === "messages_project_id"), true);
         });
         await t.test("browser: gestione progetti, catalogo, notifiche e recupero password", async browserTest => {
@@ -283,6 +289,11 @@ test("API HTTP con MySQL isolato", async t => {
             assert.equal((await api("/auth/login", { method: "POST", body: { email: "owner@example.com", password: "Changed2026!" } })).status, 200);
             await stored.reload();
             assert.equal(stored.resetToken, null);
+            assert.equal(stored.tokenVersion, 1, "Il reset incrementa il contatore una sola volta");
+            assert.equal(verifyToken(owner).tokenVersion, 0, "La firma del vecchio JWT è valida, ma la versione è superata");
+            const freshToken = generateToken(stored);
+            assert.equal(verifyToken(freshToken).tokenVersion, 1);
+            assert.equal((await api("/auth/me", { token: freshToken })).status, 200);
         });
         await t.test("blocchi e logout invalidano le richieste successive", async () => {
             assert.equal((await api(`/admin/users/${accounts.outsider.user.id}/block`, { method: "PATCH", token: accounts.admin.token, body: { blocked: true } })).status, 200);

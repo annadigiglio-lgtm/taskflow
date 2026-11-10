@@ -7,7 +7,7 @@ definiti in `src/models/` e le relazioni in `src/models/index.js`.
 
 | Modello/tabella | Dati principali | Relazioni |
 |---|---|---|
-| `User` | nome, email, hash password, ruolo, blocco, reset password | proprietario, membro, assegnatario, autore |
+| `User` | nome, email, hash password, ruolo, blocco, reset password, tokenVersion | proprietario, membro, assegnatario, autore |
 | `Project` | titolo, descrizione, categoria, tecnologie, visibilita', stato, copertina, nascosto | proprietario, membri, task, messaggi, report |
 | `ProjectMember` | `userId`, `projectId` | tabella ponte utente-progetto |
 | `Task` | titolo, descrizione, scadenza, priorita', stato, progetto, assegnatario | progetto e utente assegnatario |
@@ -55,9 +55,14 @@ primarie, senza ricreare le tabelle. Uno schema incompatibile interrompe la migr
 un errore esplicito. `002-list-indexes.js` aggiunge indici a chat, catalogo, progetti personali,
 task assegnati e segnalazioni.
 
-Le migrazioni applicate sono registrate in `SequelizeMeta`. Un lock MySQL per database
-serializza gli avvii concorrenti. In MySQL le operazioni DDL non sono transazionali: queste
-migrazioni riconoscono tabelle/indici gia presenti e possono riprendere dopo un'interruzione.
+`003-token-version.js` aggiunge un contatore intero agli utenti esistenti, inizialmente 0.
+Il reset password lo incrementa e rende inutilizzabili i JWT con una versione precedente.
+
+Le migrazioni applicate sono registrate in `SequelizeMeta`. Un ciclo legge i nomi già
+registrati, applica i file mancanti in ordine e salva i nomi applicati. Per la demo si
+usa una sola istanza: non avviare insieme due server, seed o comandi di migrazione.
+Non è presente un lock per gli avvii concorrenti. In MySQL le operazioni DDL non sono
+transazionali; i file riconoscono tabelle, indici e colonne già presenti.
 
 Comandi: `npm.cmd run db:status` (sola lettura), `npm.cmd run db:migrate` (applicazione).
 Anche server e seed eseguono le migrazioni prima di usare le tabelle. Per cambiare lo schema,

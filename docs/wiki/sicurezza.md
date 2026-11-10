@@ -41,22 +41,22 @@ condizionale consuma il token insieme al cambio password: anche due richieste co
 non possono utilizzarlo entrambe. Le richieste di recupero/reset condividono un limite di
 10 tentativi ogni 15 minuti per IP.
 
-Ogni JWT ha un identificatore casuale e una versione delle credenziali derivata tramite HMAC
-dall'hash della password corrente. HTTP e Socket.io verificano questa versione contro il
-database: dopo un reset i token precedenti sono rifiutati anche dopo il riavvio del server.
+Ogni JWT ha un identificatore casuale e il numero `tokenVersion` letto dall'utente.
+HTTP e Socket.io confrontano quel numero con il database. Il reset incrementa il contatore:
+i token precedenti sono rifiutati anche dopo il riavvio del server. Non occorre leggere
+l'hash della password durante i controlli delle richieste autenticate.
 Il reset chiude tutti i socket dell'utente; il logout chiude quelli della sola sessione
 revocata. Anche la scadenza del JWT chiude le connessioni live gia' aperte.
 
-I JWT emessi prima di questo aggiornamento non hanno la versione delle credenziali e
-richiedono un nuovo login. Anche eventuali token di reset precedenti vanno richiesti di nuovo.
+I JWT emessi prima di questo aggiornamento non hanno `tokenVersion` e richiedono un nuovo login.
 
 ## Limiti noti
 
 - I token revocati al logout sono conservati in un `Set` in memoria: riavviando il server la
   lista si svuota. In produzione servirebbe uno storage condiviso (per esempio Redis o DB).
 - Il recupero password genera un token valido un'ora ma stampa il token nella console invece
-  di inviare una email. E' una simulazione da progetto didattico.
-- La configurazione CORS e Socket.io accetta origini ampie per semplificare il client locale;
+  di inviare una email. L'invio email è simulato.
+- La configurazione CORS e Socket.io accetta origini ampie nell'ambiente locale;
   per una distribuzione pubblica va ristretta ai domini autorizzati.
 - Le migrazioni versionate aggiornano lo schema senza ricreare le tabelle esistenti.
 - Le credenziali demo sono pubblicate nella wiki solo per la prova locale; non riutilizzarle
