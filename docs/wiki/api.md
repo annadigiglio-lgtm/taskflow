@@ -95,3 +95,8 @@ messaggi quando ne arrivano di nuovi. Il cursore non permette di accedere ad alt
 
 Valori non interi, negativi o oltre i limiti restituiscono 400. La bacheca task completa resta
 un oggetto con tre colonne; i filtri dell'interfaccia si applicano a tutte le sue attivita.
+
+## Progetti archiviati
+
+Le GET di task e messaggi restano disponibili ai membri. Le scritture su task e chat
+di un progetto archiviato restituiscono 403; il proprietario deve prima riattivarlo.

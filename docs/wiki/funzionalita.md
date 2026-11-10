@@ -53,5 +53,7 @@ progetti, gestire bacheca e chat, invitare membri, archiviare o eliminare i prop
 e usare le schermate admin. Sono disponibili anche modifica dei dati di progetti e task,
 rimozione membri, segnalazioni, recupero password e filtri per tecnologia e date del catalogo.
 Le notifiche ricevute sono conservate localmente per account, fino a 50, in questo browser;
-non vengono recuperate quelle inviate mentre si era scollegati. La copertina rimane
-configurabile via API. L'elenco puntuale delle rotte e' in [API REST](api.md).
+non vengono recuperate quelle inviate mentre si era scollegati. La copertina è configurabile
+anche nei moduli del sito. I progetti archiviati conservano task e chat in sola lettura,
+con possibilità di riattivazione da parte del proprietario.
+L'elenco puntuale delle rotte e' in [API REST](api.md).

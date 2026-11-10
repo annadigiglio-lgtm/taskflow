@@ -12,17 +12,20 @@ e aprire il Runner della collection. La variabile `baseUrl` predefinita punta a
 4. Chat
 5. Dashboard
 6. Segnalazioni e Admin
-7. Recupero password
-8. Pulizia (rimozioni e logout)
+7. Pulizia (rimozioni e logout)
+8. Recupero password (codice manuale)
 
 Eseguire in una sola iterazione e mantenere l'ordine: gli script delle richieste salvano token
 e ID (`token`, `token2`, `adminToken`, `projectId`, `taskId`, ecc.) usati dalle richieste
 successive. Alcune richieste "ERRORE" sono intenzionali e verificano risposte come 400, 401,
 403 o 404.
 
-La collection contiene 48 richieste; la richiesta di reset password non ha uno script test,
-le altre 47 hanno controlli automatici. Una verifica locale eseguita con Postman ha riportato
-47 test superati e zero falliti.
+La collection contiene 50 richieste. La verifica con Newman del 10 novembre 2026 ha eseguito
+49 richieste con 49 controlli superati e zero falliti. Il reset viene saltato se la variabile
+`resetToken` non contiene un codice di 64 caratteri esadecimali; si verifica manualmente.
+Il flusso di reset completo è verificato anche dai test browser e API.
+Se l'admin non usa i dati di `.env.example`, impostare `adminEmail` e `adminPassword`
+nelle variabili della collection prima del login.
 
 ## Registrazioni gia' esistenti
 
@@ -38,9 +41,11 @@ esecuzione. In tal caso la registrazione restituisce 409; il test accetta 201 (c
 4. Incollarlo nella variabile `resetToken` della collection e inviare `Reset password`.
 
 La stampa del token simula l'invio email, che nel progetto non e' configurato.
+Il reset è alla fine perché invalida i token precedenti: dopo occorre un nuovo login.
 
 ## Pulizia e dati persistenti
 
-La cartella 8 elimina task, membro e progetto creati dalla collection e invalida il token di
+La cartella 7 verifica il blocco delle modifiche su un progetto archiviato, lo riattiva,
+elimina task, membro e progetto creati dalla collection e invalida il token di
 Anna. Gli utenti di prova registrati dalla collection rimangono nel database. Gli account
 `@example.com` creati da `seed:demo` sono separati da quelli Postman.

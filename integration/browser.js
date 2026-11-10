@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, basename, dirname } from "node:path";
 import { once } from "node:events";
@@ -54,6 +54,12 @@ export async function checkBrowser(base, token, test, getResetToken) {
             if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
             return result.result.value;
         }
+        async function screenshot(name) {
+            if (!process.env.TASKFLOW_SCREENSHOTS) return;
+            await mkdir(process.env.TASKFLOW_SCREENSHOTS, { recursive: true });
+            const { data } = await send("Page.captureScreenshot", { format: "png" });
+            await writeFile(join(process.env.TASKFLOW_SCREENSHOTS, name), Buffer.from(data, "base64"));
+        }
         async function wait(condition) {
             for (let i = 0; i < 100; i++) {
                 if (await evaluate(`(() => { try { return Boolean(${condition}); } catch { return false; } })()`)) return;
@@ -78,6 +84,11 @@ export async function checkBrowser(base, token, test, getResetToken) {
         await evaluate("document.querySelector('#createTaskButton').click()");
         await evaluate("document.querySelector('#taskForm [name=title]').value='Overdue browser task'; document.querySelector('#taskForm [name=dueDate]').value='2020-01-01'; document.querySelector('#taskForm [name=priority]').value='high'; document.querySelector('#taskForm').requestSubmit()");
         await wait("document.querySelector('.task-card.overdue') && !document.querySelector('#taskDialog').open");
+        await screenshot("progetto-desktop.png");
+        await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+        assert.equal(await evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), true, "La vista mobile non deve scorrere orizzontalmente");
+        await screenshot("progetto-mobile.png");
+        await send("Emulation.clearDeviceMetricsOverride");
         await evaluate("document.querySelector('#boardPriority').value='low'; document.querySelector('#boardPriority').dispatchEvent(new Event('input'))");
         assert.equal(await evaluate("document.querySelectorAll('.task-card').length"), 0);
         await evaluate("document.querySelector('#boardPriority').value='high'; document.querySelector('#boardPriority').dispatchEvent(new Event('input'))");

@@ -18,6 +18,8 @@ public/
   styles.css             stile e layout responsive
   components.css         stili per componenti aggiuntivi
   client.js              logica browser, chiamate API e Socket.io
+  notifications.js       storico locale delle notifiche
+  passwordRecovery.js    moduli di recupero password
 ```
 
 ## Avvio del server

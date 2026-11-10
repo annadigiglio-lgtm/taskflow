@@ -78,6 +78,8 @@ oggetti e array.
 | `src/migrations/` | Creazione e aggiornamento delle tabelle |
 | `public/index.html` | Struttura delle schermate e dei moduli |
 | `public/client.js` | Richieste API, eventi dei pulsanti e aggiornamenti della pagina |
+| `public/notifications.js` | Storico locale e visualizzazione delle notifiche |
+| `public/passwordRecovery.js` | Richiesta del codice e nuova password |
 | `public/styles.css`, `public/components.css` | Aspetto e adattamento dell'interfaccia |
 | `postman/` | Richieste da usare per verificare le API |
 | `test/`, `integration/` | Verifiche automatiche |
@@ -275,8 +277,8 @@ descrivi il comportamento effettivo del codice quando lo spieghi.
 - Il catalogo ha un endpoint pubblico, ma l'interfaccia del catalogo è nel sito
   dopo il login. Anche il dettaglio progetto richiede autenticazione.
 - Un progetto pubblico non rende pubbliche la bacheca e la chat.
-- Archiviare cambia lo stato ed esclude il progetto dal catalogo; attualmente
-  non rende bacheca e chat di sola lettura.
+- Archiviare cambia lo stato, esclude il progetto dal catalogo e rende task e chat
+  di sola lettura. Il proprietario può riattivarlo e gestire dettagli e membri.
 - Il recupero password genera un token temporaneo, ma l'email viene simulata
   nella console del server.
 - La copertina è un URL: non c'è un caricamento di file dal computer.
@@ -334,6 +336,8 @@ catalogo sono ora disponibili. Le sezioni seguenti spiegano come funzionano.
 
 ### Recuperare la password dal sito
 
+Le funzioni di questa sezione sono in `public/passwordRecovery.js`.
+
 Dalla schermata di accesso premi **Password dimenticata?**. Il primo modulo
 richiede l'email. `requestPasswordReset` invia una POST a `/auth/forgot-password`.
 La risposta è generica: non rivela se l'indirizzo è registrato.
@@ -354,6 +358,8 @@ comunque controllate dal server. Un errore resta visibile nel modulo per poterlo
 correggere. L'invio reale di email rimane una possibile estensione futura.
 
 ### Storico delle notifiche: perché usiamo localStorage
+
+Le funzioni di questa sezione sono in `public/notifications.js`.
 
 Prima una notifica compariva soltanto come messaggio temporaneo. Ora
 `addNotification` aggiunge il testo e la data a `state.notifications` e conserva
@@ -407,6 +413,24 @@ premuto durante la digitazione.
 Per provare queste funzioni, usa due account: dal secondo assegna un task al
 primo mentre è collegato, poi apri le notifiche e ricarica la pagina. Prova anche
 due date invertite nel catalogo e il recupero password dalla schermata di accesso.
+
+### Copertina e archiviazione nella versione di consegna
+
+I moduli di creazione e modifica del progetto includono un URL di copertina
+facoltativo. L'URL viene salvato come stringa in MySQL; il browser scarica l'immagine
+da quell'indirizzo e la mostra con un elemento `img`. Non stiamo caricando file
+sul server. Per rimuovere la copertina basta svuotare il campo e salvare: inviamo `null`.
+Un evento `error` nasconde l'immagine se l'indirizzo non è raggiungibile.
+
+`canWriteProject` verifica se l'utente è membro e il progetto è attivo, per mostrare
+i comandi corretti nel browser. `requireActiveForWrites` fa il controllo sul server:
+lascia passare le GET di task e chat, ma rifiuta le scritture su progetti archiviati.
+Il controllo nel browser aiuta l'utente; quello nel backend protegge davvero i dati.
+
+Le funzioni delle notifiche e del recupero sono state separate in due script per
+rendere più facile orientarsi. Tutti gli script condividono lo stesso contesto
+della pagina; le funzioni accedono a `state` quando vengono chiamate, dopo che
+`client.js` ha inizializzato lo stato. Non c'è un sistema di compilazione.
 
 ## 13. Domande per allenarti all'orale
 

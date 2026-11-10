@@ -1,236 +1,820 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f7f8fc">
-    <title>TaskFlow — Il tuo spazio di lavoro</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="components.css">
-</head>
-<body>
-    <main id="authView" class="auth-view">
-        <section class="auth-story">
-            <a class="brand brand-light" href="#" aria-label="TaskFlow home"><span class="brand-mark">t</span><span>taskflow</span></a>
-            <div class="story-copy">
-                <span class="eyebrow light-eyebrow">LAVORARE INSIEME, CON PIÙ CHIAREZZA</span>
-                <h1>Le idee migliori<br>fanno squadra.</h1>
-                <p>Organizza i progetti, dai forma alle idee e tieni il tuo team sempre in sintonia.</p>
-                <div class="story-board" aria-hidden="true">
-                    <div class="story-board-head"><span>Progetto di gruppo</span><span class="live-pill"><i></i> Live</span></div>
-                    <div class="story-task"><span class="task-dot violet"></span><span>Disegnare la nuova home</span><span class="mini-avatar av-peach">A</span></div>
-                    <div class="story-task"><span class="task-dot mint"></span><span>Condividere il prototipo</span><span class="mini-avatar av-blue">M</span></div>
-                    <div class="story-progress"><span></span></div>
-                    <div class="story-board-foot"><span>Il lavoro, finalmente, scorre.</span><span>↗</span></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#f7f8fc" />
+        <title>TaskFlow — Il tuo spazio di lavoro</title>
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="components.css" />
+    </head>
+    <body>
+        <main id="authView" class="auth-view">
+            <section class="auth-story">
+                <a class="brand brand-light" href="#" aria-label="TaskFlow home"
+                    ><span class="brand-mark">t</span><span>taskflow</span></a
+                >
+                <div class="story-copy">
+                    <span class="eyebrow light-eyebrow">LAVORARE INSIEME, CON PIÙ CHIAREZZA</span>
+                    <h1>Le idee migliori<br />fanno squadra.</h1>
+                    <p>
+                        Organizza i progetti, dai forma alle idee e tieni il tuo team sempre in
+                        sintonia.
+                    </p>
+                    <div class="story-board" aria-hidden="true">
+                        <div class="story-board-head">
+                            <span>Progetto di gruppo</span
+                            ><span class="live-pill"><i></i> Live</span>
+                        </div>
+                        <div class="story-task">
+                            <span class="task-dot violet"></span><span>Disegnare la nuova home</span
+                            ><span class="mini-avatar av-peach">A</span>
+                        </div>
+                        <div class="story-task">
+                            <span class="task-dot mint"></span><span>Condividere il prototipo</span
+                            ><span class="mini-avatar av-blue">M</span>
+                        </div>
+                        <div class="story-progress"><span></span></div>
+                        <div class="story-board-foot">
+                            <span>Il lavoro, finalmente, scorre.</span><span>↗</span>
+                        </div>
+                    </div>
+                </div>
+                <span class="story-note">UN POSTO SOLO. TUTTO IL TEAM.</span>
+                <div class="decor decor-one"></div>
+                <div class="decor decor-two"></div>
+            </section>
+
+            <section class="auth-panel">
+                <div class="auth-card">
+                    <div class="auth-mobile-brand">
+                        <a class="brand" href="#"
+                            ><span class="brand-mark">t</span><span>taskflow</span></a
+                        >
+                    </div>
+                    <span class="eyebrow" id="authEyebrow">BENTORNATA</span>
+                    <h2 id="authTitle">Accedi al tuo spazio</h2>
+                    <p class="auth-subtitle" id="authSubtitle">
+                        Riprendi da dove il tuo team ha lasciato.
+                    </p>
+                    <form id="authForm">
+                        <label id="nameField" class="field hidden"
+                            >Nome completo<input
+                                id="authName"
+                                name="name"
+                                autocomplete="name"
+                                placeholder="Es. Anna Rossi"
+                        /></label>
+                        <label class="field"
+                            >Email<input
+                                id="authEmail"
+                                name="email"
+                                type="email"
+                                autocomplete="email"
+                                placeholder="nome@esempio.it"
+                                required
+                        /></label>
+                        <label class="field"
+                            >Password<input
+                                id="authPassword"
+                                name="password"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="Almeno 8 caratteri"
+                                minlength="8"
+                                required
+                        /></label>
+                        <button class="button button-primary button-wide auth-submit" type="submit">
+                            <span id="authSubmitText">Accedi</span><span aria-hidden="true">→</span>
+                        </button>
+                    </form>
+                    <p>
+                        <button id="forgotPasswordButton" class="text-button" type="button">
+                            Password dimenticata?
+                        </button>
+                    </p>
+                    <p class="auth-switch">
+                        <span id="authSwitchLabel">È la prima volta qui?</span>
+                        <button id="authSwitch" class="text-button" type="button">
+                            Crea un account
+                        </button>
+                    </p>
+                    <p class="auth-hint">
+                        Usa l’account di prova che hai creato con Postman oppure registrati qui.
+                    </p>
+                </div>
+                <span class="auth-copyright">TASKFLOW · PROGETTO NODE.JS</span>
+            </section>
+        </main>
+
+        <div id="appView" class="app-shell hidden">
+            <aside class="sidebar">
+                <a class="brand" href="#dashboard" aria-label="TaskFlow"
+                    ><span class="brand-mark">t</span><span>taskflow</span></a
+                >
+                <div class="workspace-switch">
+                    <span class="workspace-icon">T</span
+                    ><span><strong>Il mio spazio</strong><small>Workspace personale</small></span
+                    ><span class="chevron">⌄</span>
+                </div>
+                <div class="nav-label">MENU</div>
+                <nav class="side-nav" aria-label="Menu principale">
+                    <button class="nav-item active" data-view="dashboard">
+                        <span class="nav-icon">⌂</span><span>Panoramica</span>
+                    </button>
+                    <button class="nav-item" data-view="explore">
+                        <span class="nav-icon">⌕</span><span>Esplora progetti</span>
+                    </button>
+                    <button id="adminNav" class="nav-item hidden" data-view="admin">
+                        <span class="nav-icon">⚙</span><span>Amministrazione</span>
+                    </button>
+                </nav>
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-section-head">
+                    <span>I MIEI PROGETTI</span
+                    ><button
+                        id="sidebarCreate"
+                        class="icon-button small-icon"
+                        aria-label="Crea un progetto"
+                        title="Crea un progetto"
+                    >
+                        ＋
+                    </button>
+                </div>
+                <div id="sidebarProjects" class="sidebar-projects"></div>
+                <div class="sidebar-bottom">
+                    <div class="help-card">
+                        <span class="help-spark">✳</span><strong>Un passo alla volta.</strong>
+                        <p>I grandi progetti iniziano con una piccola attività.</p>
+                    </div>
+                    <button id="logoutBtn" class="profile-row">
+                        <span id="userAvatar" class="avatar avatar-violet">A</span
+                        ><span class="profile-copy"
+                            ><strong id="userName">Utente</strong
+                            ><small id="userEmail">email</small></span
+                        ><span class="profile-menu">↗</span>
+                    </button>
+                </div>
+            </aside>
+
+            <section class="main-shell">
+                <header class="topbar">
+                    <div class="breadcrumbs">
+                        <span>Workspace</span><span class="crumb-slash">/</span
+                        ><strong id="breadcrumbCurrent">Panoramica</strong>
+                    </div>
+                    <div class="topbar-actions">
+                        <span class="today-label" id="todayLabel"></span
+                        ><button
+                            id="notificationButton"
+                            class="icon-button notification-button"
+                            aria-label="Notifiche"
+                        >
+                            ♧<i id="notificationDot" class="notification-dot hidden"></i></button
+                        ><span id="topAvatar" class="avatar avatar-violet top-avatar">A</span>
+                    </div>
+                </header>
+
+                <main class="content-area">
+                    <section id="dashboardView" class="page-view">
+                        <div class="welcome-row">
+                            <div>
+                                <span class="eyebrow" id="welcomeEyebrow">LUNEDÌ, 2 NOVEMBRE</span>
+                                <h1 id="welcomeTitle">Ciao, Anna <span class="wave">✳</span></h1>
+                                <p class="page-intro">Ecco cosa succede nel tuo spazio oggi.</p>
+                            </div>
+                            <button class="button button-primary" id="createProjectButton">
+                                <span>＋</span> Nuovo progetto
+                            </button>
+                        </div>
+                        <section class="stats-grid" aria-label="Riepilogo">
+                            <article class="stat-card stat-projects">
+                                <div class="stat-top">
+                                    <span>Progetti attivi</span
+                                    ><span class="stat-icon icon-lilac">▧</span>
+                                </div>
+                                <strong id="statProjects">0</strong
+                                ><small>Il lavoro prende forma</small>
+                            </article>
+                            <article class="stat-card stat-tasks">
+                                <div class="stat-top">
+                                    <span>Task assegnati a me</span
+                                    ><span class="stat-icon icon-peach">✓</span>
+                                </div>
+                                <strong id="statTasks">0</strong><small>Un passo alla volta</small>
+                            </article>
+                            <article class="stat-card stat-focus">
+                                <div class="stat-top">
+                                    <span>Da completare</span
+                                    ><span class="stat-icon icon-mint">◷</span>
+                                </div>
+                                <strong id="statDue">0</strong
+                                ><small>Task ancora da chiudere</small>
+                            </article>
+                        </section>
+                        <section class="section-block">
+                            <div class="section-heading">
+                                <div>
+                                    <span class="eyebrow">IL TUO LAVORO</span>
+                                    <h2>I tuoi progetti</h2>
+                                </div>
+                                <button class="text-button" data-go-view="explore">
+                                    Esplora il catalogo <span>→</span>
+                                </button>
+                            </div>
+                            <div id="projectGrid" class="project-grid"></div>
+                        </section>
+                        <section class="section-block task-overview">
+                            <div class="section-heading">
+                                <div>
+                                    <span class="eyebrow">DA TENERE D’OCCHIO</span>
+                                    <h2>I miei prossimi task</h2>
+                                </div>
+                            </div>
+                            <div id="assignedTasks" class="assigned-list"></div>
+                            <button
+                                id="dashboardMore"
+                                class="button button-soft hidden"
+                                type="button"
+                            >
+                                Carica altri progetti e task
+                            </button>
+                        </section>
+                    </section>
+
+                    <section id="exploreView" class="page-view hidden">
+                        <div class="welcome-row">
+                            <div>
+                                <span class="eyebrow">ISPIRAZIONE CONDIVISA</span>
+                                <h1>Progetti aperti</h1>
+                                <p class="page-intro">
+                                    Scopri cosa stanno costruendo gli altri team.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="catalog-toolbar">
+                            <label class="search-box"
+                                ><span>⌕</span
+                                ><input
+                                    id="catalogSearch"
+                                    type="search"
+                                    aria-label="Cerca progetti"
+                                    placeholder="Cerca un progetto…"
+                                    maxlength="255"
+                            /></label>
+                        </div>
+                        <form id="catalogFilters" class="board-filters">
+                            <label
+                                >Categoria<input
+                                    id="catalogCategoryFilter"
+                                    type="search"
+                                    placeholder="Categoria esatta"
+                                    maxlength="255"
+                            /></label>
+                            <label
+                                >Tecnologia<input
+                                    id="catalogTechnologyFilter"
+                                    type="search"
+                                    placeholder="Es. node"
+                                    maxlength="255"
+                            /></label>
+                            <label>Creato dal<input id="catalogFromFilter" type="date" /></label>
+                            <label>Creato fino al<input id="catalogToFilter" type="date" /></label>
+                            <button class="button button-soft" type="reset">Azzera filtri</button>
+                        </form>
+                        <p id="catalogError" class="form-error" role="alert"></p>
+                        <div id="catalogGrid" class="project-grid"></div>
+                        <nav class="pagination" aria-label="Pagine">
+                            <button id="catalogPrev" class="button button-soft" type="button">
+                                Precedente</button
+                            ><span id="catalogPage" aria-live="polite"></span
+                            ><button id="catalogNext" class="button button-soft" type="button">
+                                Successiva
+                            </button>
+                        </nav>
+                    </section>
+
+                    <section id="projectView" class="page-view hidden">
+                        <button id="backToDashboard" class="back-link">
+                            ← <span>Torna ai progetti</span>
+                        </button>
+                        <div class="project-hero">
+                            <div class="project-hero-copy">
+                                <span id="projectCategory" class="category-pill">PROGETTO</span>
+                                <h1 id="projectTitle">Titolo progetto</h1>
+                                <p id="projectDescription" class="page-intro"></p>
+                                <div class="project-meta">
+                                    <span id="projectMemberCount">◎ 0 membri</span
+                                    ><span id="projectTech"></span>
+                                </div>
+                            </div>
+                            <div class="project-hero-actions">
+                                <button id="editProjectButton" class="button button-soft">
+                                    Modifica progetto
+                                </button>
+                                <button id="membersButton" class="button button-soft">
+                                    Membri
+                                </button>
+                                <button id="reportButton" class="button button-soft">
+                                    Segnala
+                                </button>
+                                <button id="inviteButton" class="button button-soft">
+                                    ＋ Invita membro</button
+                                ><button id="archiveButton" class="button button-soft">
+                                    Archivia</button
+                                ><button id="deleteProjectButton" class="button button-danger-soft">
+                                    Elimina
+                                </button>
+                            </div>
+                        </div>
+                        <img
+                            id="projectCover"
+                            class="cover-image project-cover hidden"
+                            alt="Copertina del progetto"
+                            referrerpolicy="no-referrer"
+                        />
+                        <p id="archivedNotice" class="archive-notice hidden" role="status">
+                            Progetto archiviato: bacheca e chat sono in sola lettura. Il
+                            proprietario pu&ograve; riattivarlo.
+                        </p>
+                        <div class="project-tabs">
+                            <button class="project-tab active" data-project-tab="board">
+                                Bacheca <span id="boardCount">0</span></button
+                            ><button class="project-tab" data-project-tab="chat">
+                                Chat <span class="tab-live">● live</span></button
+                            ><span id="liveStatus" class="live-status"
+                                ><i></i> Connessione in attesa</span
+                            >
+                        </div>
+                        <section id="boardPanel" class="board-panel">
+                            <div class="board-toolbar">
+                                <div>
+                                    <h2>Il flusso del lavoro</h2>
+                                    <p>Sposta i task man mano che il progetto avanza.</p>
+                                </div>
+                                <button id="createTaskButton" class="button button-primary">
+                                    ＋ Nuovo task
+                                </button>
+                            </div>
+                            <div class="board-filters" role="search" aria-label="Filtra i task">
+                                <label
+                                    >Cerca<input
+                                        id="boardSearch"
+                                        type="search"
+                                        placeholder="Titolo o descrizione"
+                                /></label>
+                                <label
+                                    >Assegnatario<select id="boardAssignee">
+                                        <option value="">Tutte le persone</option>
+                                    </select></label
+                                >
+                                <label
+                                    >Priorit&#224;<select id="boardPriority">
+                                        <option value="">Tutte</option>
+                                        <option value="high">Alta</option>
+                                        <option value="medium">Media</option>
+                                        <option value="low">Bassa</option>
+                                    </select></label
+                                >
+                                <label
+                                    >Scadenza<select id="boardDue">
+                                        <option value="">Tutte</option>
+                                        <option value="overdue">Scaduti</option>
+                                        <option value="today">Oggi</option>
+                                        <option value="none">Senza scadenza</option>
+                                    </select></label
+                                >
+                            </div>
+                            <div id="boardColumns" class="board-columns"></div>
+                        </section>
+                        <section id="chatPanel" class="chat-panel hidden">
+                            <div class="chat-heading">
+                                <div>
+                                    <span class="eyebrow">IN TEMPO REALE</span>
+                                    <h2>La conversazione del team</h2>
+                                </div>
+                                <span class="chat-online"><i></i> Chat di progetto</span>
+                            </div>
+                            <button
+                                id="olderMessages"
+                                class="button button-soft hidden"
+                                type="button"
+                            >
+                                Carica messaggi precedenti
+                            </button>
+                            <div id="messageList" class="message-list"></div>
+                            <form id="messageForm" class="message-form">
+                                <input
+                                    id="messageInput"
+                                    autocomplete="off"
+                                    placeholder="Scrivi un messaggio al team…"
+                                    required
+                                /><button
+                                    class="button button-primary"
+                                    type="submit"
+                                    aria-label="Invia messaggio"
+                                >
+                                    Invia <span>→</span>
+                                </button>
+                            </form>
+                        </section>
+                    </section>
+
+                    <section id="adminView" class="page-view hidden">
+                        <div class="welcome-row">
+                            <div>
+                                <span class="eyebrow">CENTRO DI CONTROLLO</span>
+                                <h1>Amministrazione</h1>
+                                <p class="page-intro">
+                                    Gestisci la community e controlla le segnalazioni.
+                                </p>
+                            </div>
+                            <button id="refreshAdmin" class="button button-soft">↻ Aggiorna</button>
+                        </div>
+                        <section class="stats-grid admin-stats">
+                            <article class="stat-card">
+                                <div class="stat-top">
+                                    <span>Utenti registrati</span
+                                    ><span class="stat-icon icon-lilac">♙</span>
+                                </div>
+                                <strong id="adminUserCount">0</strong
+                                ><small>Persone nella community</small>
+                            </article>
+                            <article class="stat-card">
+                                <div class="stat-top">
+                                    <span>Segnalazioni aperte</span
+                                    ><span class="stat-icon icon-peach">⚑</span>
+                                </div>
+                                <strong id="adminReportCount">0</strong
+                                ><small>Da controllare</small>
+                            </article>
+                            <article class="stat-card">
+                                <div class="stat-top">
+                                    <span>Account bloccati</span
+                                    ><span class="stat-icon icon-mint">⊘</span>
+                                </div>
+                                <strong id="adminBlockedCount">0</strong
+                                ><small>Blocco applicato subito</small>
+                            </article>
+                        </section>
+                        <section class="section-block admin-section">
+                            <div class="section-heading">
+                                <div>
+                                    <span class="eyebrow">COMMUNITY</span>
+                                    <h2>Gestione utenti</h2>
+                                </div>
+                            </div>
+                            <div id="adminUsersList" class="admin-list"></div>
+                            <nav class="pagination" aria-label="Pagine">
+                                <button id="userPrev" class="button button-soft" type="button">
+                                    Precedente</button
+                                ><span id="userPage" aria-live="polite"></span
+                                ><button id="userNext" class="button button-soft" type="button">
+                                    Successiva
+                                </button>
+                            </nav>
+                        </section>
+                        <section class="section-block admin-section">
+                            <div class="section-heading">
+                                <div>
+                                    <span class="eyebrow">MODERAZIONE</span>
+                                    <h2>Segnalazioni</h2>
+                                </div>
+                            </div>
+                            <div id="adminReportsList" class="admin-list"></div>
+                            <nav class="pagination" aria-label="Pagine">
+                                <button id="reportPrev" class="button button-soft" type="button">
+                                    Precedente</button
+                                ><span id="reportPage" aria-live="polite"></span
+                                ><button id="reportNext" class="button button-soft" type="button">
+                                    Successiva
+                                </button>
+                            </nav>
+                        </section>
+                    </section>
+                </main>
+            </section>
+        </div>
+
+        <dialog id="projectDialog" class="modal-dialog">
+            <form id="projectForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    ×</button
+                ><span class="eyebrow">NUOVA IDEA, NUOVO INIZIO</span>
+                <h2>Crea un progetto</h2>
+                <p class="modal-intro">
+                    Dai un nome al tuo spazio di lavoro. Potrai aggiungere dettagli dopo.
+                </p>
+                <label class="field"
+                    >URL copertina (facoltativo)<input
+                        name="coverImage"
+                        type="url"
+                        maxlength="255"
+                        placeholder="https://esempio.it/copertina.jpg"
+                    /><small>Inserisci un indirizzo HTTP o HTTPS di un'immagine.</small></label
+                ><label class="field"
+                    >Titolo<input
+                        name="title"
+                        required
+                        maxlength="100"
+                        placeholder="Es. Portfolio di classe" /></label
+                ><label class="field"
+                    >Descrizione<textarea
+                        name="description"
+                        rows="3"
+                        placeholder="Di cosa si occupa il progetto?"
+                    ></textarea>
+                </label>
+                <div class="form-two-col">
+                    <label class="field"
+                        >Categoria<input name="category" placeholder="Es. Web design" /></label
+                    ><label class="field"
+                        >Tecnologie<input name="technologies" placeholder="node, mysql"
+                    /></label>
+                </div>
+                <label class="field"
+                    >Visibilità<select name="visibility">
+                        <option value="private">Privato — solo i membri</option>
+                        <option value="public">Pubblico — visibile nel catalogo</option>
+                    </select></label
+                >
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla</button
+                    ><button class="button button-primary" type="submit">
+                        Crea progetto <span>→</span>
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="taskDialog" class="modal-dialog">
+            <form id="taskForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    ×</button
+                ><span class="eyebrow">UN TASK ALLA VOLTA</span>
+                <h2>Aggiungi un task</h2>
+                <p class="modal-intro">Rendi chiaro il prossimo passo per il team.</p>
+                <label class="field"
+                    >Titolo<input
+                        name="title"
+                        required
+                        maxlength="150"
+                        placeholder="Es. Preparare la presentazione" /></label
+                ><label class="field"
+                    >Descrizione<textarea
+                        name="description"
+                        rows="3"
+                        placeholder="Aggiungi qualche dettaglio…"
+                    ></textarea>
+                </label>
+                <div class="form-two-col">
+                    <label class="field">Scadenza<input name="dueDate" type="date" /></label
+                    ><label class="field"
+                        >Priorità<select name="priority">
+                            <option value="medium">Media</option>
+                            <option value="high">Alta</option>
+                            <option value="low">Bassa</option>
+                        </select></label
+                    >
+                </div>
+                <label class="field"
+                    >Stato iniziale<select name="status">
+                        <option value="todo">Da fare</option>
+                        <option value="in_progress">In corso</option>
+                        <option value="done">Completato</option>
+                    </select></label
+                ><label class="field"
+                    >Assegna a<select id="assigneeSelect" name="assigneeId">
+                        <option value="">Non assegnato</option>
+                    </select></label
+                >
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla</button
+                    ><button class="button button-primary" type="submit">
+                        Crea task <span>→</span>
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="inviteDialog" class="modal-dialog">
+            <form id="inviteForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    ×</button
+                ><span class="eyebrow">IL TEAM CRESCE</span>
+                <h2>Invita una persona</h2>
+                <p class="modal-intro">La persona deve avere già un account TaskFlow.</p>
+                <label class="field"
+                    >Email<input name="email" type="email" required placeholder="nome@esempio.it"
+                /></label>
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla</button
+                    ><button class="button button-primary" type="submit">
+                        Aggiungi al progetto <span>→</span>
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Moduli di modifica: i dati iniziali vengono inseriti da client.js. -->
+        <dialog id="editProjectDialog" class="modal-dialog" aria-labelledby="editProjectTitle">
+            <form id="editProjectForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="editProjectTitle">Modifica progetto</h2>
+                <p class="modal-intro">Aggiorna i dettagli del tuo spazio di lavoro.</p>
+                <label class="field"
+                    >URL copertina (facoltativo)<input
+                        name="coverImage"
+                        type="url"
+                        maxlength="255"
+                        placeholder="https://esempio.it/copertina.jpg"
+                    /><small>Inserisci un indirizzo HTTP o HTTPS di un'immagine.</small></label
+                ><label class="field">Titolo<input name="title" required maxlength="255" /></label>
+                <label class="field"
+                    >Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea>
+                </label>
+                <label class="field">Categoria<input name="category" maxlength="255" /></label>
+                <label class="field"
+                    >Tecnologie<input name="technologies" maxlength="255" placeholder="node, mysql"
+                /></label>
+                <label class="field"
+                    >Visibilit&agrave;<select name="visibility">
+                        <option value="private">Privato &mdash; solo i membri</option>
+                        <option value="public">Pubblico &mdash; visibile nel catalogo</option>
+                    </select></label
+                >
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla
+                    </button>
+                    <button class="button button-primary" type="submit">Salva modifiche</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="editTaskDialog" class="modal-dialog" aria-labelledby="editTaskTitle">
+            <form id="editTaskForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="editTaskTitle">Modifica attivit&agrave;</h2>
+                <p class="modal-intro">
+                    Stato e assegnatario si cambiano direttamente dalla scheda nella bacheca.
+                </p>
+                <label class="field">Titolo<input name="title" required maxlength="255" /></label>
+                <label class="field"
+                    >Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea>
+                </label>
+                <div class="form-two-col">
+                    <label class="field">Scadenza<input name="dueDate" type="date" /></label>
+                    <label class="field"
+                        >Priorit&agrave;<select name="priority">
+                            <option value="low">Bassa</option>
+                            <option value="medium">Media</option>
+                            <option value="high">Alta</option>
+                        </select></label
+                    >
+                </div>
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla
+                    </button>
+                    <button class="button button-primary" type="submit">Salva modifiche</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="membersDialog" class="modal-dialog" aria-labelledby="membersTitle">
+            <div class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="membersTitle">Membri del progetto</h2>
+                <p class="modal-intro">
+                    Il proprietario pu&ograve; rimuovere gli altri membri. Le loro attivit&agrave;
+                    restano nel progetto senza assegnatario.
+                </p>
+                <ul id="membersList" class="members-list"></ul>
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Chiudi
+                    </button>
                 </div>
             </div>
-            <span class="story-note">UN POSTO SOLO. TUTTO IL TEAM.</span>
-            <div class="decor decor-one"></div><div class="decor decor-two"></div>
-        </section>
+        </dialog>
 
-        <section class="auth-panel">
-            <div class="auth-card">
-                <div class="auth-mobile-brand"><a class="brand" href="#"><span class="brand-mark">t</span><span>taskflow</span></a></div>
-                <span class="eyebrow" id="authEyebrow">BENTORNATA</span>
-                <h2 id="authTitle">Accedi al tuo spazio</h2>
-                <p class="auth-subtitle" id="authSubtitle">Riprendi da dove il tuo team ha lasciato.</p>
-                <form id="authForm">
-                    <label id="nameField" class="field hidden">Nome completo<input id="authName" name="name" autocomplete="name" placeholder="Es. Anna Rossi"></label>
-                    <label class="field">Email<input id="authEmail" name="email" type="email" autocomplete="email" placeholder="nome@esempio.it" required></label>
-                    <label class="field">Password<input id="authPassword" name="password" type="password" autocomplete="current-password" placeholder="Almeno 8 caratteri" minlength="8" required></label>
-                    <button class="button button-primary button-wide auth-submit" type="submit"><span id="authSubmitText">Accedi</span><span aria-hidden="true">→</span></button>
+        <dialog id="reportDialog" class="modal-dialog" aria-labelledby="reportTitle">
+            <form id="reportForm" class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="reportTitle">Segnala progetto</h2>
+                <p class="modal-intro">
+                    Descrivi il problema: la segnalazione verr&agrave; esaminata dagli
+                    amministratori.
+                </p>
+                <label class="field"
+                    >Motivo<textarea name="reason" rows="4" required maxlength="10000"></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button class="button button-soft" type="button" data-close-dialog>
+                        Annulla
+                    </button>
+                    <button class="button button-primary" type="submit">Invia segnalazione</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="recoveryDialog" class="modal-dialog" aria-labelledby="recoveryTitle">
+            <div class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="recoveryTitle">Recupera la password</h2>
+                <p class="modal-intro">
+                    In questa versione dimostrativa l'email viene simulata: il codice di recupero
+                    viene stampato nella console del server ed &egrave; valido un'ora.
+                </p>
+                <form id="forgotPasswordForm">
+                    <label class="field"
+                        >Email<input
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            maxlength="254"
+                            required
+                    /></label>
+                    <button class="button button-primary" type="submit">Richiedi codice</button>
                 </form>
-                <p><button id="forgotPasswordButton" class="text-button" type="button">Password dimenticata?</button></p>
-                <p class="auth-switch"><span id="authSwitchLabel">È la prima volta qui?</span> <button id="authSwitch" class="text-button" type="button">Crea un account</button></p>
-                <p class="auth-hint">Usa l’account di prova che hai creato con Postman oppure registrati qui.</p>
+                <p id="recoveryMessage" role="status"></p>
+                <form id="resetPasswordForm">
+                    <h3>Hai il codice? Scegli una nuova password</h3>
+                    <label class="field"
+                        >Codice di recupero<input
+                            name="token"
+                            autocomplete="off"
+                            spellcheck="false"
+                            required
+                            minlength="64"
+                            maxlength="64"
+                            pattern="[a-f0-9]{64}"
+                    /></label>
+                    <label class="field"
+                        >Nuova password<input
+                            name="newPassword"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                    /></label>
+                    <label class="field"
+                        >Conferma password<input
+                            name="confirmPassword"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                    /></label>
+                    <p id="resetPasswordError" class="form-error" role="alert"></p>
+                    <button class="button button-primary" type="submit">
+                        Salva nuova password
+                    </button>
+                </form>
             </div>
-            <span class="auth-copyright">TASKFLOW · PROGETTO NODE.JS</span>
-        </section>
-    </main>
+        </dialog>
 
-    <div id="appView" class="app-shell hidden">
-        <aside class="sidebar">
-            <a class="brand" href="#dashboard" aria-label="TaskFlow"><span class="brand-mark">t</span><span>taskflow</span></a>
-            <div class="workspace-switch"><span class="workspace-icon">T</span><span><strong>Il mio spazio</strong><small>Workspace personale</small></span><span class="chevron">⌄</span></div>
-            <div class="nav-label">MENU</div>
-            <nav class="side-nav" aria-label="Menu principale">
-                <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Panoramica</span></button>
-                <button class="nav-item" data-view="explore"><span class="nav-icon">⌕</span><span>Esplora progetti</span></button>
-                <button id="adminNav" class="nav-item hidden" data-view="admin"><span class="nav-icon">⚙</span><span>Amministrazione</span></button>
-            </nav>
-            <div class="sidebar-divider"></div>
-            <div class="sidebar-section-head"><span>I MIEI PROGETTI</span><button id="sidebarCreate" class="icon-button small-icon" aria-label="Crea un progetto" title="Crea un progetto">＋</button></div>
-            <div id="sidebarProjects" class="sidebar-projects"></div>
-            <div class="sidebar-bottom">
-                <div class="help-card"><span class="help-spark">✳</span><strong>Un passo alla volta.</strong><p>I grandi progetti iniziano con una piccola attività.</p></div>
-                <button id="logoutBtn" class="profile-row"><span id="userAvatar" class="avatar avatar-violet">A</span><span class="profile-copy"><strong id="userName">Utente</strong><small id="userEmail">email</small></span><span class="profile-menu">↗</span></button>
+        <dialog id="notificationsDialog" class="modal-dialog" aria-labelledby="notificationsTitle">
+            <div class="modal-card">
+                <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">
+                    &times;
+                </button>
+                <h2 id="notificationsTitle">Le tue notifiche</h2>
+                <p class="modal-intro">
+                    Le ultime 50 notifiche ricevute mentre sei collegata, conservate in questo
+                    browser per il tuo account. Le notifiche precedenti al collegamento non vengono
+                    recuperate.
+                </p>
+                <ul id="notificationsList" class="notifications-list"></ul>
+                <div class="modal-actions">
+                    <button id="clearNotifications" class="button button-soft" type="button">
+                        Svuota elenco
+                    </button>
+                    <button class="button button-primary" type="button" data-close-dialog>
+                        Chiudi
+                    </button>
+                </div>
             </div>
-        </aside>
+        </dialog>
 
-        <section class="main-shell">
-            <header class="topbar">
-                <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong id="breadcrumbCurrent">Panoramica</strong></div>
-                <div class="topbar-actions"><span class="today-label" id="todayLabel"></span><button id="notificationButton" class="icon-button notification-button" aria-label="Notifiche">♧<i id="notificationDot" class="notification-dot hidden"></i></button><span id="topAvatar" class="avatar avatar-violet top-avatar">A</span></div>
-            </header>
-
-            <main class="content-area">
-                <section id="dashboardView" class="page-view">
-                    <div class="welcome-row"><div><span class="eyebrow" id="welcomeEyebrow">LUNEDÌ, 2 NOVEMBRE</span><h1 id="welcomeTitle">Ciao, Anna <span class="wave">✳</span></h1><p class="page-intro">Ecco cosa succede nel tuo spazio oggi.</p></div><button class="button button-primary" id="createProjectButton"><span>＋</span> Nuovo progetto</button></div>
-                    <section class="stats-grid" aria-label="Riepilogo">
-                        <article class="stat-card stat-projects"><div class="stat-top"><span>Progetti attivi</span><span class="stat-icon icon-lilac">▧</span></div><strong id="statProjects">0</strong><small>Il lavoro prende forma</small></article>
-                        <article class="stat-card stat-tasks"><div class="stat-top"><span>Task assegnati a me</span><span class="stat-icon icon-peach">✓</span></div><strong id="statTasks">0</strong><small>Un passo alla volta</small></article>
-                        <article class="stat-card stat-focus"><div class="stat-top"><span>Da completare</span><span class="stat-icon icon-mint">◷</span></div><strong id="statDue">0</strong><small>Task ancora da chiudere</small></article>
-                    </section>
-                    <section class="section-block"><div class="section-heading"><div><span class="eyebrow">IL TUO LAVORO</span><h2>I tuoi progetti</h2></div><button class="text-button" data-go-view="explore">Esplora il catalogo <span>→</span></button></div><div id="projectGrid" class="project-grid"></div></section>
-                    <section class="section-block task-overview"><div class="section-heading"><div><span class="eyebrow">DA TENERE D’OCCHIO</span><h2>I miei prossimi task</h2></div></div><div id="assignedTasks" class="assigned-list"></div><button id="dashboardMore" class="button button-soft hidden" type="button">Carica altri progetti e task</button></section>
-                </section>
-
-                <section id="exploreView" class="page-view hidden">
-                    <div class="welcome-row"><div><span class="eyebrow">ISPIRAZIONE CONDIVISA</span><h1>Progetti aperti</h1><p class="page-intro">Scopri cosa stanno costruendo gli altri team.</p></div></div>
-                    <div class="catalog-toolbar"><label class="search-box"><span>⌕</span><input id="catalogSearch" type="search" aria-label="Cerca progetti" placeholder="Cerca un progetto…" maxlength="255"></label></div>
-                    <form id="catalogFilters" class="board-filters">
-                        <label>Categoria<input id="catalogCategoryFilter" type="search" placeholder="Categoria esatta" maxlength="255"></label>
-                        <label>Tecnologia<input id="catalogTechnologyFilter" type="search" placeholder="Es. node" maxlength="255"></label>
-                        <label>Creato dal<input id="catalogFromFilter" type="date"></label>
-                        <label>Creato fino al<input id="catalogToFilter" type="date"></label>
-                        <button class="button button-soft" type="reset">Azzera filtri</button>
-                    </form>
-                    <p id="catalogError" class="form-error" role="alert"></p>
-                    <div id="catalogGrid" class="project-grid"></div><nav class="pagination" aria-label="Pagine"><button id="catalogPrev" class="button button-soft" type="button">Precedente</button><span id="catalogPage" aria-live="polite"></span><button id="catalogNext" class="button button-soft" type="button">Successiva</button></nav>
-                </section>
-
-                <section id="projectView" class="page-view hidden">
-                    <button id="backToDashboard" class="back-link">← <span>Torna ai progetti</span></button>
-                    <div class="project-hero"><div class="project-hero-copy"><span id="projectCategory" class="category-pill">PROGETTO</span><h1 id="projectTitle">Titolo progetto</h1><p id="projectDescription" class="page-intro"></p><div class="project-meta"><span id="projectMemberCount">◎ 0 membri</span><span id="projectTech"></span></div></div><div class="project-hero-actions">
-                        <button id="editProjectButton" class="button button-soft">Modifica progetto</button>
-                        <button id="membersButton" class="button button-soft">Membri</button>
-                        <button id="reportButton" class="button button-soft">Segnala</button>
-                        <button id="inviteButton" class="button button-soft">＋ Invita membro</button><button id="archiveButton" class="button button-soft">Archivia</button><button id="deleteProjectButton" class="button button-danger-soft">Elimina</button></div></div>
-                    <img id="projectCover" class="cover-image project-cover hidden" alt="Copertina del progetto" referrerpolicy="no-referrer">
-                    <p id="archivedNotice" class="archive-notice hidden" role="status">Progetto archiviato: bacheca e chat sono in sola lettura. Il proprietario pu&ograve; riattivarlo.</p>
-                    <div class="project-tabs"><button class="project-tab active" data-project-tab="board">Bacheca <span id="boardCount">0</span></button><button class="project-tab" data-project-tab="chat">Chat <span class="tab-live">● live</span></button><span id="liveStatus" class="live-status"><i></i> Connessione in attesa</span></div>
-                    <section id="boardPanel" class="board-panel"><div class="board-toolbar"><div><h2>Il flusso del lavoro</h2><p>Sposta i task man mano che il progetto avanza.</p></div><button id="createTaskButton" class="button button-primary">＋ Nuovo task</button></div><div class="board-filters" role="search" aria-label="Filtra i task">
-<label>Cerca<input id="boardSearch" type="search" placeholder="Titolo o descrizione"></label>
-<label>Assegnatario<select id="boardAssignee"><option value="">Tutte le persone</option></select></label>
-<label>Priorit&#224;<select id="boardPriority"><option value="">Tutte</option><option value="high">Alta</option><option value="medium">Media</option><option value="low">Bassa</option></select></label>
-<label>Scadenza<select id="boardDue"><option value="">Tutte</option><option value="overdue">Scaduti</option><option value="today">Oggi</option><option value="none">Senza scadenza</option></select></label>
-</div><div id="boardColumns" class="board-columns"></div></section>
-                    <section id="chatPanel" class="chat-panel hidden"><div class="chat-heading"><div><span class="eyebrow">IN TEMPO REALE</span><h2>La conversazione del team</h2></div><span class="chat-online"><i></i> Chat di progetto</span></div><button id="olderMessages" class="button button-soft hidden" type="button">Carica messaggi precedenti</button><div id="messageList" class="message-list"></div><form id="messageForm" class="message-form"><input id="messageInput" autocomplete="off" placeholder="Scrivi un messaggio al team…" required><button class="button button-primary" type="submit" aria-label="Invia messaggio">Invia <span>→</span></button></form></section>
-                </section>
-
-                <section id="adminView" class="page-view hidden">
-                    <div class="welcome-row"><div><span class="eyebrow">CENTRO DI CONTROLLO</span><h1>Amministrazione</h1><p class="page-intro">Gestisci la community e controlla le segnalazioni.</p></div><button id="refreshAdmin" class="button button-soft">↻ Aggiorna</button></div>
-                    <section class="stats-grid admin-stats"><article class="stat-card"><div class="stat-top"><span>Utenti registrati</span><span class="stat-icon icon-lilac">♙</span></div><strong id="adminUserCount">0</strong><small>Persone nella community</small></article><article class="stat-card"><div class="stat-top"><span>Segnalazioni aperte</span><span class="stat-icon icon-peach">⚑</span></div><strong id="adminReportCount">0</strong><small>Da controllare</small></article><article class="stat-card"><div class="stat-top"><span>Account bloccati</span><span class="stat-icon icon-mint">⊘</span></div><strong id="adminBlockedCount">0</strong><small>Blocco applicato subito</small></article></section>
-                    <section class="section-block admin-section"><div class="section-heading"><div><span class="eyebrow">COMMUNITY</span><h2>Gestione utenti</h2></div></div><div id="adminUsersList" class="admin-list"></div><nav class="pagination" aria-label="Pagine"><button id="userPrev" class="button button-soft" type="button">Precedente</button><span id="userPage" aria-live="polite"></span><button id="userNext" class="button button-soft" type="button">Successiva</button></nav></section>
-                    <section class="section-block admin-section"><div class="section-heading"><div><span class="eyebrow">MODERAZIONE</span><h2>Segnalazioni</h2></div></div><div id="adminReportsList" class="admin-list"></div><nav class="pagination" aria-label="Pagine"><button id="reportPrev" class="button button-soft" type="button">Precedente</button><span id="reportPage" aria-live="polite"></span><button id="reportNext" class="button button-soft" type="button">Successiva</button></nav></section>
-                </section>
-            </main>
-        </section>
-    </div>
-
-    <dialog id="projectDialog" class="modal-dialog"><form id="projectForm" class="modal-card"><button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">×</button><span class="eyebrow">NUOVA IDEA, NUOVO INIZIO</span><h2>Crea un progetto</h2><p class="modal-intro">Dai un nome al tuo spazio di lavoro. Potrai aggiungere dettagli dopo.</p><label class="field">URL copertina (facoltativo)<input name="coverImage" type="url" maxlength="255" placeholder="https://esempio.it/copertina.jpg"><small>Inserisci un indirizzo HTTP o HTTPS di un'immagine.</small></label><label class="field">Titolo<input name="title" required maxlength="100" placeholder="Es. Portfolio di classe"></label><label class="field">Descrizione<textarea name="description" rows="3" placeholder="Di cosa si occupa il progetto?"></textarea></label><div class="form-two-col"><label class="field">Categoria<input name="category" placeholder="Es. Web design"></label><label class="field">Tecnologie<input name="technologies" placeholder="node, mysql"></label></div><label class="field">Visibilità<select name="visibility"><option value="private">Privato — solo i membri</option><option value="public">Pubblico — visibile nel catalogo</option></select></label><div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Annulla</button><button class="button button-primary" type="submit">Crea progetto <span>→</span></button></div></form></dialog>
-
-    <dialog id="taskDialog" class="modal-dialog"><form id="taskForm" class="modal-card"><button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">×</button><span class="eyebrow">UN TASK ALLA VOLTA</span><h2>Aggiungi un task</h2><p class="modal-intro">Rendi chiaro il prossimo passo per il team.</p><label class="field">Titolo<input name="title" required maxlength="150" placeholder="Es. Preparare la presentazione"></label><label class="field">Descrizione<textarea name="description" rows="3" placeholder="Aggiungi qualche dettaglio…"></textarea></label><div class="form-two-col"><label class="field">Scadenza<input name="dueDate" type="date"></label><label class="field">Priorità<select name="priority"><option value="medium">Media</option><option value="high">Alta</option><option value="low">Bassa</option></select></label></div><label class="field">Stato iniziale<select name="status"><option value="todo">Da fare</option><option value="in_progress">In corso</option><option value="done">Completato</option></select></label><label class="field">Assegna a<select id="assigneeSelect" name="assigneeId"><option value="">Non assegnato</option></select></label><div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Annulla</button><button class="button button-primary" type="submit">Crea task <span>→</span></button></div></form></dialog>
-
-    <dialog id="inviteDialog" class="modal-dialog"><form id="inviteForm" class="modal-card"><button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">×</button><span class="eyebrow">IL TEAM CRESCE</span><h2>Invita una persona</h2><p class="modal-intro">La persona deve avere già un account TaskFlow.</p><label class="field">Email<input name="email" type="email" required placeholder="nome@esempio.it"></label><div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Annulla</button><button class="button button-primary" type="submit">Aggiungi al progetto <span>→</span></button></div></form></dialog>
-
-    <!-- Moduli di modifica: i dati iniziali vengono inseriti da client.js. -->
-    <dialog id="editProjectDialog" class="modal-dialog" aria-labelledby="editProjectTitle">
-        <form id="editProjectForm" class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="editProjectTitle">Modifica progetto</h2>
-            <p class="modal-intro">Aggiorna i dettagli del tuo spazio di lavoro.</p>
-            <label class="field">URL copertina (facoltativo)<input name="coverImage" type="url" maxlength="255" placeholder="https://esempio.it/copertina.jpg"><small>Inserisci un indirizzo HTTP o HTTPS di un'immagine.</small></label><label class="field">Titolo<input name="title" required maxlength="255"></label>
-            <label class="field">Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea></label>
-            <label class="field">Categoria<input name="category" maxlength="255"></label>
-            <label class="field">Tecnologie<input name="technologies" maxlength="255" placeholder="node, mysql"></label>
-            <label class="field">Visibilit&agrave;<select name="visibility"><option value="private">Privato &mdash; solo i membri</option><option value="public">Pubblico &mdash; visibile nel catalogo</option></select></label>
-            <div class="modal-actions">
-                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
-                <button class="button button-primary" type="submit">Salva modifiche</button>
-            </div>
-        </form>
-    </dialog>
-
-    <dialog id="editTaskDialog" class="modal-dialog" aria-labelledby="editTaskTitle">
-        <form id="editTaskForm" class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="editTaskTitle">Modifica attivit&agrave;</h2>
-            <p class="modal-intro">Stato e assegnatario si cambiano direttamente dalla scheda nella bacheca.</p>
-            <label class="field">Titolo<input name="title" required maxlength="255"></label>
-            <label class="field">Descrizione<textarea name="description" rows="3" maxlength="20000"></textarea></label>
-            <div class="form-two-col">
-                <label class="field">Scadenza<input name="dueDate" type="date"></label>
-                <label class="field">Priorit&agrave;<select name="priority"><option value="low">Bassa</option><option value="medium">Media</option><option value="high">Alta</option></select></label>
-            </div>
-            <div class="modal-actions">
-                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
-                <button class="button button-primary" type="submit">Salva modifiche</button>
-            </div>
-        </form>
-    </dialog>
-
-    <dialog id="membersDialog" class="modal-dialog" aria-labelledby="membersTitle">
-        <div class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="membersTitle">Membri del progetto</h2>
-            <p class="modal-intro">Il proprietario pu&ograve; rimuovere gli altri membri. Le loro attivit&agrave; restano nel progetto senza assegnatario.</p>
-            <ul id="membersList" class="members-list"></ul>
-            <div class="modal-actions"><button class="button button-soft" type="button" data-close-dialog>Chiudi</button></div>
-        </div>
-    </dialog>
-
-    <dialog id="reportDialog" class="modal-dialog" aria-labelledby="reportTitle">
-        <form id="reportForm" class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="reportTitle">Segnala progetto</h2>
-            <p class="modal-intro">Descrivi il problema: la segnalazione verr&agrave; esaminata dagli amministratori.</p>
-            <label class="field">Motivo<textarea name="reason" rows="4" required maxlength="10000"></textarea></label>
-            <div class="modal-actions">
-                <button class="button button-soft" type="button" data-close-dialog>Annulla</button>
-                <button class="button button-primary" type="submit">Invia segnalazione</button>
-            </div>
-        </form>
-    </dialog>
-
-    <dialog id="recoveryDialog" class="modal-dialog" aria-labelledby="recoveryTitle">
-        <div class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="recoveryTitle">Recupera la password</h2>
-            <p class="modal-intro">In questa versione dimostrativa l'email viene simulata: il codice di recupero viene stampato nella console del server ed &egrave; valido un'ora.</p>
-            <form id="forgotPasswordForm">
-                <label class="field">Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
-                <button class="button button-primary" type="submit">Richiedi codice</button>
-            </form>
-            <p id="recoveryMessage" role="status"></p>
-            <form id="resetPasswordForm">
-                <h3>Hai il codice? Scegli una nuova password</h3>
-                <label class="field">Codice di recupero<input name="token" autocomplete="off" spellcheck="false" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}"></label>
-                <label class="field">Nuova password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-                <label class="field">Conferma password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-                <p id="resetPasswordError" class="form-error" role="alert"></p>
-                <button class="button button-primary" type="submit">Salva nuova password</button>
-            </form>
-        </div>
-    </dialog>
-
-    <dialog id="notificationsDialog" class="modal-dialog" aria-labelledby="notificationsTitle">
-        <div class="modal-card">
-            <button class="modal-close" type="button" data-close-dialog aria-label="Chiudi">&times;</button>
-            <h2 id="notificationsTitle">Le tue notifiche</h2>
-            <p class="modal-intro">Le ultime 50 notifiche ricevute mentre sei collegata, conservate in questo browser per il tuo account. Le notifiche precedenti al collegamento non vengono recuperate.</p>
-            <ul id="notificationsList" class="notifications-list"></ul>
-            <div class="modal-actions">
-                <button id="clearNotifications" class="button button-soft" type="button">Svuota elenco</button>
-                <button class="button button-primary" type="button" data-close-dialog>Chiudi</button>
-            </div>
-        </div>
-    </dialog>
-
-    <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="notifications.js"></script>
-    <script src="passwordRecovery.js"></script>
-    <script src="client.js"></script>
-</body>
+        <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="notifications.js"></script>
+        <script src="passwordRecovery.js"></script>
+        <script src="client.js"></script>
+    </body>
 </html>

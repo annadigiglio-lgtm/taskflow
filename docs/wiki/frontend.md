@@ -30,7 +30,9 @@ messaggi di stato usano `textContent` dove non serve markup.
 
 ## Limiti del client rispetto alle API
 
-L'immagine copertina e' un URL configurabile via API, non un upload file. Il recupero
+L'immagine copertina e' un URL configurabile nei moduli di creazione e modifica, non un
+upload file. Compare sulle schede e nel dettaglio; se non è raggiungibile viene nascosta.
+Il recupero
 password ha due moduli: richiesta del codice e impostazione della nuova password con
 conferma. L'email resta simulata nella console del server; il modulo lo indica esplicitamente.
 I dettagli e tutte le rotte sono in [API REST](api.md).
@@ -49,3 +51,11 @@ recenti e carica lo storico su richiesta, conservando la posizione di lettura.
 La bacheca combina ricerca nel titolo/descrizione, assegnatario (anche non assegnati),
 priorita e scadenza (scaduti, oggi, senza data). Un task completato non e marcato come scaduto.
 Le date si confrontano con il giorno locale. L'eliminazione dei task richiede conferma.
+
+Nei progetti archiviati si possono leggere bacheca e chat, ma i comandi di scrittura non
+sono disponibili; le API rifiutano quelle modifiche con 403. Il proprietario può riattivare
+il progetto e continua a gestire i dettagli e i membri.
+
+`notifications.js` raccoglie le funzioni dello storico locale; `passwordRecovery.js` quelle
+dei due moduli di recupero. Sono semplici script caricati prima di `client.js`, che definisce
+lo stato condiviso e collega i pulsanti. Non servono framework né compilazione.

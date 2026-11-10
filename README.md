@@ -22,11 +22,12 @@ Progetto per l'esame finale del modulo **Programmazione Node.js** (ITS).
 
 ## Installazione e avvio
 
-Requisiti: Node.js (LTS) e MySQL in esecuzione.
+Requisiti: Node.js 22 o successivo e MySQL in esecuzione. Verificato con Node.js 24.
+Per chi riceve il progetto: [istruzioni di consegna e verifica](CONSEGNA.md).
 
 ```bash
 # 1. Installa le dipendenze
-npm install
+npm ci
 
 # 2. Crea il file .env partendo dall'esempio e inserisci i tuoi dati
 cp .env.example .env
@@ -257,8 +258,14 @@ File: `postman/TaskFlow.postman_collection.json` (in Postman: *Import*).
 - La lista dei token revocati e il conteggio del rate limit sono in memoria: si azzerano al riavvio (in produzione si userebbe Redis).
 - L'email di recupero password è simulata in console: per inviarla davvero si potrebbe usare `nodemailer`.
 - L'immagine di copertina è un URL: per il caricamento di file si potrebbe usare `multer`.
+- I moduli del sito permettono di inserire, modificare e rimuovere l'URL di copertina.
+- Nei progetti archiviati task e chat sono in sola lettura; il proprietario può riattivarli,
+  aggiornare i dettagli, gestire i membri o eliminare il progetto.
 - Le migrazioni sono eseguite in avanti: le modifiche successive allo schema vanno aggiunte come nuovi file versionati.
-- `npm audit` segnala alcune vulnerabilità nelle dipendenze indirette (`braces` tramite nodemon, solo in sviluppo; `uuid` tramite Sequelize). La correzione proposta (`npm audit fix --force`) farebbe tornare Sequelize alla versione 3, quindi non è stata applicata.
+- Controllo dipendenze del 10 novembre 2026: applicati gli aggiornamenti compatibili;
+  nessuna segnalazione alta o critica. Restano due segnalazioni moderate per `uuid` e
+  Sequelize. Non applicato `npm audit fix --force`, che propone Sequelize 3 al posto della 6.
+  Nodemon è fissato alla versione 3.1.11 per evitare la dipendenza minimatch segnalata dall'audit.
 
 ## Pagine, bacheca e migrazioni
 

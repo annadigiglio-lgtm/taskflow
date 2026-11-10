@@ -26,9 +26,9 @@ PDF e ai file sorgente, in modo che il collegamento sia verificabile.
 
 | Materiale fornito | Concetti applicati | Dove si vedono |
 |---|---|---|
-| [Introduzione e Setup di Node.js.pdf](../../../Introduzione%20e%20Setup%20di%20Node.js.pdf) | Node.js, moduli ES, npm, variabili d'ambiente, avvio del server | `package.json`, `src/server.js`, `src/config/db.js` |
-| [Sviluppo di Applicazioni Web con Node.js.pdf](../../../Sviluppo%20di%20Applicazioni%20Web%20con%20Node.js.pdf) | Express, middleware, router, API REST e controller | `src/app.js`, `src/routes/`, `src/controllers/` |
-| [Database e Sicurezza in Node.js.pdf](../../../Database%20%20Sicurezza%20in%20Node.js.pdf) | MySQL/Sequelize, modelli e associazioni, validazione, bcrypt/JWT, sicurezza API | `src/models/`, `src/middleware/`, `src/utils/`, Helmet e rate limit in `app.js` |
-| [Real-Time Applications e WebSockets.pdf](../../../Real-Time%20Applications%20e%20WebSockets.pdf) | Socket.io, stanze, eventi e notifiche | `src/socket/index.js` e `src/controllers/` |
+| Introduzione e Setup di Node.js.pdf | Node.js, moduli ES, npm, variabili d'ambiente, avvio del server | `package.json`, `src/server.js`, `src/config/db.js` |
+| Sviluppo di Applicazioni Web con Node.js.pdf | Express, middleware, router, API REST e controller | `src/app.js`, `src/routes/`, `src/controllers/` |
+| Database e Sicurezza in Node.js.pdf | MySQL/Sequelize, modelli e associazioni, validazione, bcrypt/JWT, sicurezza API | `src/models/`, `src/middleware/`, `src/utils/`, Helmet e rate limit in `app.js` |
+| Real-Time Applications e WebSockets.pdf | Socket.io, stanze, eventi e notifiche | `src/socket/index.js` e `src/controllers/` |
 | [ProgettoFinale2026.pdf](../../../ProgettoFinale2026.pdf) | Obiettivi e criteri specifici del prodotto TaskFlow | mappa in questa pagina e feature elencate in [Funzionalita'](funzionalita.md) |
 
